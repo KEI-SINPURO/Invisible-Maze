@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes in the Dark - 完全バリアフリー音響迷路</title>
+    <!-- Tailwind CSS (Aesthetics and layouts) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 暗闇での集中を促すダークテーマとネオンの残響エフェクト */
+        body {
+            background-color: #05070c;
+            color: #f1f5f9;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2), inset 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        .sonar-wave {
+            animation: ping-wave 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes ping-wave {
+            75%, 100% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-8 overflow-x-hidden">
+
+    <!-- ヘッダーエリア -->
+    <header class="w-full max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-emerald-900/40 pb-4 mb-4">
+        <div class="flex items-center gap-3">
+            <div class="relative w-8 h-8 flex items-center justify-center">
+                <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20 sonar-wave"></span>
+                <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-wider text-emerald-400">ECHOES IN THE DARK</h1>
+                <p class="text-xs text-slate-400 font-medium">ACCESSIBILITY EDITION (完全音響ナビゲーション迷路)</p>
+            </div>
+        </div>
+        <div class="mt-3 sm:mt-0 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/30 rounded text-xs text-emerald-300 font-semibold tracking-wider">
+            ヘッドホン・イヤホン推奨 🎧
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow w-full max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch my-2">
+        
+        <!-- 左側：ステータス ＆ ゲーム画面（基本的には真っ黒なビジュアライザー表示） -->
+        <section class="lg:col-span-7 flex flex-col justify-between bg-slate-950/80 border border-slate-800/80 rounded-2xl p-6 neon-border">
+            
+            <!-- 上部ステータス表示 -->
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <span class="text-xs font-bold text-slate-500 uppercase block tracking-widest">CURRENT LEVEL</span>
+                    <span id="level-display" class="text-2xl font-black text-slate-100">STAGE 1</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold text-slate-500 uppercase block tracking-widest">DIFFICULTY</span>
+                    <span id="difficulty-display" class="text-lg font-bold text-emerald-400">NORMAL</span>
+                </div>
+            </div>
+
+            <!-- メインビジュアルエリア（キャンバス、または暗闇インジケータ） -->
+            <div class="relative w-full aspect-video md:aspect-square max-h-[400px] bg-black rounded-xl border border-emerald-950 flex flex-col items-center justify-center overflow-hidden">
+                
+                <!-- 音響パルス・ビジュアライザー (Canvas) -->
+                <canvas id="visualizerCanvas" class="absolute inset-0 w-full h-full opacity-60 pointer-events-none"></canvas>
+                
+                <!-- 迷路描画（練習モード・晴眼者用アシスト） -->
+                <canvas id="mazeCanvas" class="absolute inset-0 w-full h-full hidden pointer-events-none"></canvas>
+
+                <!-- ダークネス・インジケーター（真っ暗モード時の中心UI） -->
+                <div id="darkness-overlay" class="relative z-10 flex flex-col items-center justify-center text-center p-4">
+                    <div id="sonar-center-ring" class="w-24 h-24 rounded-full border-2 border-dashed border-emerald-500/30 flex items-center justify-center mb-4 transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-emerald-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                        </svg>
+                    </div>
+                    <span id="radar-status-text" class="text-sm font-semibold text-slate-400 tracking-wider">音波探知システム稼働中</span>
+                    <span id="coordinates-text" class="text-xs text-slate-600 mt-1">エンターキーを押して開始してください</span>
+                </div>
+            </div>
+
+            <!-- 簡易説明・現在のアクションフィードバック -->
+            <div class="mt-4 p-3 bg-slate-900/60 border border-slate-800/40 rounded-xl min-h-[4rem] flex items-center justify-center">
+                <p id="action-feedback" class="text-center text-sm font-medium text-emerald-300">
+                    画面のどこか、または「ゲーム開始」ボタンをクリックしてシステムを初期化してください。
+                </p>
+            </div>
+        </section>
+
+        <!-- 右側：コントロール・ナビゲーション説明パネル -->
+        <section class="lg:col-span-5 flex flex-col justify-between gap-4">
+            
+            <!-- コントロール部 -->
+            <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-4">
+                <h2 class="text-base font-bold text-slate-200 border-b border-slate-800 pb-2">🕹️ システムコントロール</h2>
+                
+                <!-- ゲーム開始 / リトライボタン -->
+                <button id="btn-start" onclick="initAndStartGame()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-slate-950 font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 text-lg">
+                    <span>🎮 ゲーム開始 (Enter)</span>
+                </button>
+
+                <!-- 設定セクション（難易度・モード） -->
+                <div class="grid grid-cols-1 gap-3 mt-1">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 tracking-wider">難易度変更 (Mキー)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button id="btn-diff-easy" onclick="changeDifficulty('easy')" class="py-2 text-xs font-bold rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 transition">EASY</button>
+                            <button id="btn-diff-normal" onclick="changeDifficulty('normal')" class="py-2 text-xs font-bold rounded-lg border border-emerald-500/30 bg-emerald-950/30 text-emerald-400 transition">NORMAL</button>
+                            <button id="btn-diff-nightmare" onclick="changeDifficulty('nightmare')" class="py-2 text-xs font-bold rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 transition">NIGHTMARE</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 border-t border-slate-900 pt-3 flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">トレーニング補助モード</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="trainingModeToggle" class="sr-only peer" onchange="toggleTrainingMode()">
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-slate-100"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 完全ガイド解説パネル -->
+            <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-6 flex-grow flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-200 border-b border-slate-800 pb-2">📖 音による空間把握ガイド</h2>
+                    <ul class="text-xs text-slate-300 space-y-2.5 mt-3">
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">1.</span>
+                            <span><strong>定時ビーコン（ゴールの音）：</strong> 定期的に鳴る音はゴールの方向。左右の耳から聞こえる音量で「位置」が分かり、自分の前方なら「高い澄んだ音」、後方なら「低いこもった音」に変わります。近づくほど間隔が高速になり、音量も上がります。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">2.</span>
+                            <span><strong>移動の足音：</strong> 矢印キーで動けた時は、その方向に応じた心地よいステレオ足音が。壁にぶつかった時は、その方角から鈍い衝突音が「ゴン！」と聞こえます。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">3.</span>
+                            <span><strong>周囲スキャン（Spaceキー）：</strong> 周り4方向（上・右・下・左の順）に音波を放ちます。「高いピキーン音」は通れる道、「低い濁った音」は壁です。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">4.</span>
+                            <span><strong>位置情報ガイド（Hキー）：</strong> 現在の位置（座標）と、ゴールまでの距離をいつでも日本語の音声で耳元で読み上げてくれます。</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="text-[10px] text-slate-500 text-center border-t border-slate-900 pt-3 mt-4">
+                    ※ 画面クリック後に、キーボードのみで全操作が可能です。
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- フッター -->
+    <footer class="w-full max-w-4xl mx-auto text-center text-[11px] text-slate-600 border-t border-slate-900 pt-4 mt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <span>© 2026 Echoes in the Dark - Accessibility Games</span>
+        <span class="bg-slate-950 px-2 py-1 rounded border border-slate-900">Audio Synthesized with Web Audio API</span>
+    </footer>
+
+    <!-- ゲームロジック実装 -->
+    <script>
+        // ゲームステート
+        let audioCtx = null;
+        let masterGain = null;
+        let maze = [];
+        let player = { x: 0, y: 0 };
+        let goal = { x: 0, y: 0 };
+        let stage = 1;
+        let difficulty = 'normal'; // easy, normal, nightmare
+        let mazeWidth = 4;
+        let mazeHeight = 4;
+        let gameState = 'init'; // init, playing, win
+        let beaconTimer = null;
+        let isTrainingMode = false;
+
+        // ビジュアル用
+        let animationFrameId = null;
+        let visualizerDataArray = [];
+        let visualizerAnalyser = null;
+
+        // 音声読み上げキュー管理（重複防止、割り込み制御）
+        function speak(text, interrupt = true) {
+            if ('speechSynthesis' in window) {
+                if (interrupt) {
+                    window.speechSynthesis.cancel();
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.25; // 少し聞き取りやすいように若干速め
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 初期ロード時・ユーザーアクションを促す読み上げ
+        window.addEventListener('DOMContentLoaded', () => {
+            // 初期のキャンバス描画（暗闇画面）
+            resizeCanvas();
+            drawDarknessScreen();
+            
+            // 起動時の初期アナウンス
+            setTimeout(() => {
+                speak("エコー・イン・ザ・ダークへようこそ。このゲームは、完全に音だけを頼りに遊ぶことができるバリアフリー迷路ゲームです。ゲームを開始するには、エンターキー、または画面中央の開始ボタンを押してください。操作はすべてキーボードで行えます。");
+            }, 1000);
+        });
+
+        // 難易度パラメータ取得
+        const difficultySettings = {
+            easy: { width: 3, height: 3, name: "イージー", beaconInterval: 1800 },
+            normal: { width: 5, height: 5, name: "ノーマル", beaconInterval: 1400 },
+            nightmare: { width: 8, height: 8, name: "ナイトメア", beaconInterval: 1000 }
+        };
+
+        // Web Audio APIの初期化
+        function initAudio() {
+            if (audioCtx) return;
+            
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0.4, audioCtx.currentTime); // 全体のボリューム調節
+            
+            // ビジュアライザー用アナライザー
+            visualizerAnalyser = audioCtx.createAnalyser();
+            visualizerAnalyser.fftSize = 64;
+            let bufferLength = visualizerAnalyser.frequencyBinCount;
+            visualizerDataArray = new Uint8Array(bufferLength);
+
+            // 接続
+            masterGain.connect(visualizerAnalyser);
+            visualizerAnalyser.connect(audioCtx.destination);
+
+            // ビジュアライザーの描画開始
+            drawVisualizer();
+        }
+
+        // --- シンセサイザー音響設計 (Web Audio API) ---
+
+        /**
+         * 立体音響対応 シンセ音発生器
+         * @param {number} freq 周波数 (Hz)
+         * @param {string} type オシレータ波形 ('sine', 'square', 'sawtooth', 'triangle')
+         * @param {number} duration 音の長さ (秒)
+         * @param {number} pan 左右の定位 (-1: 左端, 0: 中央, 1: 右端)
+         * @param {number} volume ボリューム (0〜1)
+         * @param {number} filterFreq ローパスフィルター遮断周波数 (高音を曇らせる用)
+         */
+        function playSynthesizedTone(freq, type, duration, pan = 0, volume = 0.3, filterFreq = 20000) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+            const filter = audioCtx.createBiquadFilter();
+
+            // オシレータ設定
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            // フィルター設定 (遠さによる高周波の減衰をシミュレート)
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(filterFreq, audioCtx.currentTime);
+
+            // 音量変化 (指数関数的な減衰で打楽器のような響きに)
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+
+            // ステレオパンニング
+            if (panner) {
+                panner.pan.setValueAtTime(pan, audioCtx.currentTime);
+                osc.connect(filter).connect(gain).connect(panner).connect(masterGain);
+            } else {
+                osc.connect(filter).connect(gain).connect(masterGain);
+            }
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        /**
+         * 足音のシミュレーション音（方向別の定位・音高）
+         */
+        function playStepSound(direction) {
+            let pan = 0;
+            let freq = 200; // 前後はピッチで区別
+
+            if (direction === 'left') {
+                pan = -0.6;
+                freq = 240;
+            } else if (direction === 'right') {
+                pan = 0.6;
+                freq = 240;
+            } else if (direction === 'up') {
+                pan = 0;
+                freq = 280; // 前は少し高音で軽い足音
+            } else if (direction === 'down') {
+                pan = 0;
+                freq = 160; // 後ろは重い低音
+            }
+
+            // 足音を模した柔らかい三角波 + ノイズのような短い音
+            playSynthesizedTone(freq, 'triangle', 0.12, pan, 0.4, 1500);
+        }
+
+        /**
+         * 壁衝突音（方向別の重いドスッという音）
+         */
+        function playCollisionSound(direction) {
+            let pan = 0;
+            if (direction === 'left') pan = -0.8;
+            if (direction === 'right') pan = 0.8;
+
+            // ドスッという鈍い音（低周波数の鋸歯状波＋ローパスを急激に下げる）
+            playSynthesizedTone(95, 'sawtooth', 0.25, pan, 0.7, 300);
+        }
+
+        /**
+         * ゴールビーコン音
+         * 3D立体音響（ステレオ方向、および上下によるピッチ変化、距離によるフィルター＆音量変化）
+         */
+        function triggerGoalBeacon() {
+            if (gameState !== 'playing') return;
+
+            // 距離と方角の算出
+            const dx = goal.x - player.x;
+            const dy = goal.y - player.y;
+            const manhattanDistance = Math.abs(dx) + Math.abs(dy);
+            const maxDistance = mazeWidth + mazeHeight - 2;
+
+            // 1. 定位（左右のバランス）
+            // マップサイズに合わせてステレオ左右方向へ定位
+            let pan = mazeWidth > 1 ? (dx / (mazeWidth - 1)) : 0;
+            pan = Math.max(-1.0, Math.min(1.0, pan));
+
+            // 2. ピッチ設定（上下の位置把握）
+            // ゴールが自分より「北（上：dyが負）」にあれば澄んだ高音、
+            // ゴールが自分より「南（下：dyが正）」にあればこもった低音
+            let baseFreq = 523.25; // C5 (基準)
+            if (dy < 0) {
+                // 自分より北（上）にある。澄んだ高音
+                baseFreq = 659.25; // E5
+            } else if (dy > 0) {
+                // 自分より南（下）にある。重い低音
+                baseFreq = 349.23; // F4
+            } else {
+                // 同じ水平線上
+                baseFreq = 440.00; // A4
+            }
+
+            // 3. ボリュームとフィルター（距離に応じたリアルな減衰）
+            // 近いほど大きく、フィルターが開いてキラキラ澄んだ音になり、遠いと小さく濁った音になる
+            let distRatio = manhattanDistance / maxDistance;
+            if (maxDistance === 0) distRatio = 0;
+
+            // 音量：最小0.08 〜 最大0.55
+            let volume = 0.55 * (1 - distRatio);
+            volume = Math.max(0.08, Math.min(0.55, volume));
+
+            // フィルター遮断周波数：遠いとこもり、近いとクリア (400Hz 〜 8000Hz)
+            let filterFreq = 8000 * (1 - distRatio * 0.8);
+
+            // ビーコン音を合成 (澄んだ柔らかいサイン波)
+            playSynthesizedTone(baseFreq, 'sine', 0.35, pan, volume, filterFreq);
+
+            // 心拍ビジュアルトリガー
+            triggerVisualPulse(volume);
+
+            // 4. 近づくほど鳴る間隔が早くなるインテリジェントタイマー
+            let baseInterval = difficultySettings[difficulty].beaconInterval;
+            let currentInterval = baseInterval * (0.3 + distRatio * 0.7); // 近いと最速30%のスピードで脈打つ
+            
+            // ビーコンタイマーの次回の再スケジュール
+            if (beaconTimer) clearTimeout(beaconTimer);
+            beaconTimer = setTimeout(triggerGoalBeacon, currentInterval);
+        }
+
+        /**
+         * 周囲スキャンソナー（スペースキー）
+         * 上・右・下・左の順で音波を放ち、障害物（壁）を判別する
+         */
+        function runActiveSonar() {
+            if (gameState !== 'playing') return;
+
+            document.getElementById('action-feedback').innerText = "🔊 周囲をスキャン中...";
+            document.getElementById('action-feedback').classList.add('text-emerald-400');
+
+            const directions = [
+                { name: '上', blocked: maze[player.y][player.x].up, pan: 0, pitch: 880, wallPitch: 220 },
+                { name: '右', blocked: maze[player.y][player.x].right, pan: 0.8, pitch: 880, wallPitch: 220 },
+                { name: '下', blocked: maze[player.y][player.x].down, pan: 0, pitch: 880, wallPitch: 220 },
+                { name: '左', blocked: maze[player.y][player.x].left, pan: -0.8, pitch: 880, wallPitch: 220 }
+            ];
+
+            directions.forEach((dir, index) => {
+                setTimeout(() => {
+                    if (gameState !== 'playing') return;
+                    
+                    if (dir.blocked) {
+                        // 壁：低く濁ったノコギリ波
+                        playSynthesizedTone(dir.wallPitch, 'triangle', 0.15, dir.pan, 0.3, 500);
+                        triggerVisualPulse(0.2, '#ef4444');
+                    } else {
+                        // 道：美しく澄んだピキーンというサイン波
+                        playSynthesizedTone(dir.pitch, 'sine', 0.18, dir.pan, 0.35, 12000);
+                        triggerVisualPulse(0.4, '#10b981');
+                    }
+
+                    // スキャン中、現在の進行度をテキスト表示
+                    document.getElementById('coordinates-text').innerText = `スキャン: ${dir.name} 方向`;
+                }, index * 220); // 0.22秒の等間隔でスキャン音が流れる
+            });
+
+            // スキャン完了後のフィードバックテキスト復元
+            setTimeout(() => {
+                if (gameState === 'playing') {
+                    updateCoordinatesText();
+                    document.getElementById('action-feedback').innerText = "スキャン完了。ポーン音が聞こえる方向を頼りに進んでください。";
+                }
+            }, 1000);
+        }
+
+        /**
+         * ステージクリアファンファーレ
+         */
+        function playLevelCompleteFanfare() {
+            // ド・ミ・ソ・ド・ミ・ソ・ハイパード
+            const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, index) => {
+                setTimeout(() => {
+                    playSynthesizedTone(freq, 'sine', 0.4, 0, 0.35);
+                    triggerVisualPulse(0.5, '#10b981');
+                }, index * 100);
+            });
+        }
+
+
+        // --- 迷路自動生成システム (深さ優先探索) ---
+
+        function generatePerfectMaze(width, height) {
+            let cells = [];
+            for (let y = 0; y < height; y++) {
+                cells[y] = [];
+                for (let x = 0; x < width; x++) {
+                    cells[y][x] = { up: true, right: true, down: true, left: true, visited: false };
+                }
+            }
+
+            let stack = [];
+            let current = { x: 0, y: 0 };
+            cells[current.y][current.x].visited = true;
+            let unvisitedCount = width * height - 1;
+
+            while (unvisitedCount > 0) {
+                let neighbors = [];
+                let x = current.x;
+                let y = current.y;
+
+                if (y > 0 && !cells[y-1][x].visited) neighbors.push({x: x, y: y-1, dir: 'up'});
+                if (x < width - 1 && !cells[y][x+1].visited) neighbors.push({x: x+1, y: y, dir: 'right'});
+                if (y < height - 1 && !cells[y+1][x].visited) neighbors.push({x: x, y: y+1, dir: 'down'});
+                if (x > 0 && !cells[y][x-1].visited) neighbors.push({x: x-1, y: y, dir: 'left'});
+
+                if (neighbors.length > 0) {
+                    let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    
+                    if (next.dir === 'up') { cells[y][x].up = false; cells[next.y][next.x].down = false; }
+                    else if (next.dir === 'right') { cells[y][x].right = false; cells[next.y][next.x].left = false; }
+                    else if (next.dir === 'down') { cells[y][x].down = false; cells[next.y][next.x].up = false; }
+                    else if (next.dir === 'left') { cells[y][x].left = false; cells[next.y][next.x].right = false; }
+
+                    cells[next.y][next.x].visited = true;
+                    stack.push({x: current.x, y: current.y});
+                    current = { x: next.x, y: next.y };
+                    unvisitedCount--;
+                } else if (stack.length > 0) {
+                    current = stack.pop();
+                } else {
+                    break;
+                }
+            }
+            return cells;
+        }
+
+
+        // --- ゲームマネジメント & ライフサイクル ---
+
+        // 初期化＆ゲーム開始
+        function initAndStartGame() {
+            initAudio();
+            
+            // 難易度設定からマップサイズの決定（イージー、ノーマル、ナイトメア）
+            const config = difficultySettings[difficulty];
+            
+            // ステージ進行によるマップの自動拡大
+            // イージーは初期3x3から最大5x5まで、ナイトメアは最大12x12
+            let extraSize = Math.floor((stage - 1) / 2);
+            if (difficulty === 'easy') {
+                mazeWidth = Math.min(5, config.width + extraSize);
+                mazeHeight = Math.min(5, config.height + extraSize);
+            } else if (difficulty === 'normal') {
+                mazeWidth = Math.min(9, config.width + extraSize);
+                mazeHeight = Math.min(9, config.height + extraSize);
+            } else {
+                mazeWidth = Math.min(12, config.width + extraSize);
+                mazeHeight = Math.min(12, config.height + extraSize);
+            }
+
+            // 迷路生成
+            maze = generatePerfectMaze(mazeWidth, mazeHeight);
+
+            // プレイヤーとゴールの初期配置（対角線上の最遠になるよう設定）
+            player = { x: 0, y: 0 };
+            goal = { x: mazeWidth - 1, y: mazeHeight - 1 };
+
+            gameState = 'playing';
+
+            // UIテキスト更新
+            document.getElementById('level-display').innerText = `STAGE ${stage}`;
+            document.getElementById('difficulty-display').innerText = difficulty.toUpperCase();
+            document.getElementById('btn-start').innerText = "🔄 ステージをやり直す (R)";
+            document.getElementById('action-feedback').innerText = "ゲームが開始されました。耳元を流れるゴールのピン音を頼りに、矢印キーで動いてください。";
+            
+            updateCoordinatesText();
+
+            // 音声案内（開始アナウンス）
+            speak(`ステージ ${stage} を開始します。マップの大きさは、横 ${mazeWidth} マス、縦 ${mazeHeight} マスです。現在位置は一番左上の、横1、上1です。右下のゴールを目指してください。幸運を。`, true);
+
+            // ビーコンの開始
+            if (beaconTimer) clearTimeout(beaconTimer);
+            triggerGoalBeacon();
+
+            // 描画系の更新
+            renderAll();
+        }
+
+        // 現在位置テキストの更新
+        function updateCoordinatesText() {
+            const hDist = Math.abs(goal.x - player.x) + Math.abs(goal.y - player.y);
+            const rawText = `現在位置: [${player.x + 1}, ${player.y + 1}] | ゴールまであと ${hDist} マス`;
+            document.getElementById('coordinates-text').innerText = rawText;
+            document.getElementById('coordinates-text').classList.remove('text-slate-600');
+            document.getElementById('coordinates-text').classList.add('text-slate-400');
+        }
+
+        // Hキー：現在位置とゴール方向を音声で詳しく読み上げるナビゲーション
+        function runVoiceNavigation() {
+            if (gameState !== 'playing') return;
+
+            const dx = goal.x - player.x;
+            const dy = goal.y - player.y;
+            const hDist = Math.abs(dx) + Math.abs(dy);
+
+            let directionSpeech = "";
+            if (dx > 0) directionSpeech += `東（右）に ${dx} マス、`;
+            if (dx < 0) directionSpeech += `西（左）に ${Math.abs(dx)} マス、`;
+            if (dy > 0) directionSpeech += `南（下）に ${dy} マス、`;
+            if (dy < 0) directionSpeech += `北（上）に ${Math.abs(dy)} マス、`;
+
+            const fullSpeech = `現在位置は、横に ${mazeWidth}マス、縦に ${mazeHeight}マスのうち、左から ${player.x + 1} 番目、上から ${player.y + 1} 番目です。ゴールは、ここから${directionSpeech}。合計 ${hDist} マス離れた場所にあります。`;
+            speak(fullSpeech, true);
+        }
+
+        // 難易度変更
+        function changeDifficulty(diff) {
+            difficulty = diff;
+            
+            // ボタンのアクティブ表現の更新
+            ['easy', 'normal', 'nightmare'].forEach(d => {
+                const btn = document.getElementById(`btn-diff-${d}`);
+                if (d === diff) {
+                    btn.className = "py-2 text-xs font-bold rounded-lg border border-emerald-500/30 bg-emerald-950/30 text-emerald-400 transition";
+                } else {
+                    btn.className = "py-2 text-xs font-bold rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 transition";
+                }
+            });
+
+            const diffName = difficultySettings[diff].name;
+            speak(`難易度を ${diffName} に変更しました。`, true);
+            
+            // 難易度変更されたらステージ1からやり直す
+            stage = 1;
+            initAndStartGame();
+        }
+
+        // 練習モードの切り替え
+        function toggleTrainingMode() {
+            isTrainingMode = document.getElementById('trainingModeToggle').checked;
+            const mazeCanvas = document.getElementById('mazeCanvas');
+            
+            if (isTrainingMode) {
+                mazeCanvas.classList.remove('hidden');
+                speak("トレーニング補助モード。画面に迷路と自分の位置を可視化します。", true);
+            } else {
+                mazeCanvas.classList.add('hidden');
+                speak("暗闇モードに戻りました。耳を澄ませて、音だけを頼りに進んでください。", true);
+            }
+            renderAll();
+        }
+
+        // リトライ処理
+        function retryCurrentLevel() {
+            speak(`ステージ ${stage} を最初からやり直します。`, true);
+            initAndStartGame();
+        }
+
+        // クリア判定
+        function checkLevelClear() {
+            if (player.x === goal.x && player.y === goal.y) {
+                gameState = 'win';
+                if (beaconTimer) clearTimeout(beaconTimer);
+                
+                playLevelCompleteFanfare();
+                speak(`おめでとうございます！ステージ ${stage} をクリアしました！エンターキーを押すと、次のステージへ進みます。`, true);
+                
+                document.getElementById('action-feedback').innerText = "🏆 クリア！エンターキーを押して次のステージへ";
+                document.getElementById('action-feedback').className = "text-center text-lg font-black text-amber-400 animate-bounce";
+                
+                stage++;
+            }
+        }
+
+
+        // --- キーボード入力イベントの検知 ---
+
+        window.addEventListener('keydown', (e) => {
+            // ゲーム起動前・エンターキーでスタート
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (gameState === 'win' || gameState === 'init' || gameState === 'playing') {
+                    initAndStartGame();
+                }
+                return;
+            }
+
+            if (gameState !== 'playing') return;
+
+            let moved = false;
+            let dirName = '';
+            let blocked = false;
+
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                e.preventDefault();
+                dirName = 'up';
+                if (!maze[player.y][player.x].up) {
+                    player.y--;
+                    moved = true;
+                } else {
+                    blocked = true;
+                }
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                dirName = 'right';
+                if (!maze[player.y][player.x].right) {
+                    player.x++;
+                    moved = true;
+                } else {
+                    blocked = true;
+                }
+            } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                dirName = 'down';
+                if (!maze[player.y][player.x].down) {
+                    player.y++;
+                    moved = true;
+                } else {
+                    blocked = true;
+                }
+            } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                dirName = 'left';
+                if (!maze[player.y][player.x].left) {
+                    player.x--;
+                    moved = true;
+                } else {
+                    blocked = true;
+                }
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                runActiveSonar();
+            } else if (e.key === 'h' || e.key === 'H') {
+                e.preventDefault();
+                runVoiceNavigation();
+            } else if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                retryCurrentLevel();
+            } else if (e.key === 'm' || e.key === 'M') {
+                e.preventDefault();
+                // 難易度のトグル切り替え
+                if (difficulty === 'easy') changeDifficulty('normal');
+                else if (difficulty === 'normal') changeDifficulty('nightmare');
+                else changeDifficulty('easy');
+            }
+
+            // 移動時の音響フィードバック
+            if (moved) {
+                playStepSound(dirName);
+                updateCoordinatesText();
+                renderAll();
+                checkLevelClear();
+            } else if (blocked) {
+                playCollisionSound(dirName);
+                // 軽くレーダー中心部を赤く震わせるビジュアルエフェクト
+                triggerVisualPulse(0.3, '#ef4444');
+            }
+        });
+
+
+        // --- キャンバス描画 ＆ リアルタイムオーディオビジュアライザ ---
+
+        let visualPulseSize = 0;
+        let visualPulseColor = '#10b981';
+
+        function triggerVisualPulse(strength, color = '#10b981') {
+            visualPulseSize = strength * 140;
+            visualPulseColor = color;
+            
+            // UI上のソナーリングのネオンエフェクト変更
+            const ring = document.getElementById('sonar-center-ring');
+            if (ring) {
+                ring.style.borderColor = color;
+                ring.style.transform = `scale(${1 + strength * 0.4})`;
+                setTimeout(() => {
+                    ring.style.transform = 'scale(1)';
+                    ring.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                }, 150);
+            }
+        }
+
+        // Canvasサイズ調整
+        function resizeCanvas() {
+            const vCanvas = document.getElementById('visualizerCanvas');
+            const mCanvas = document.getElementById('mazeCanvas');
+            
+            const container = vCanvas.parentElement;
+            const size = Math.min(container.clientWidth, container.clientHeight, 400);
+            
+            vCanvas.width = size;
+            vCanvas.height = size;
+            mCanvas.width = size;
+            mCanvas.height = size;
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            renderAll();
+        });
+
+        // 暗闇時のデフォルト画面描画 (最初の状態)
+        function drawDarknessScreen() {
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // ビジュアライザーのループ描画（暗闇画面を彩るネオンウェーブ）
+        function drawVisualizer() {
+            animationFrameId = requestAnimationFrame(drawVisualizer);
+            
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            if (visualizerAnalyser) {
+                visualizerAnalyser.getByteFrequencyData(visualizerDataArray);
+            }
+
+            // フェード効果を与えることで美しい残響テールを表現
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, w, h);
+
+            // 1. 周囲ソナーやビーコン時の波形エフェクト
+            if (visualPulseSize > 0.1) {
+                ctx.beginPath();
+                ctx.arc(w / 2, h / 2, visualPulseSize, 0, 2 * Math.PI);
+                ctx.strokeStyle = visualPulseColor;
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = visualPulseSize / 140;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+                visualPulseSize *= 0.9; // 収束していく
+            }
+
+            // 2. 音データに連動した美しい円形レーダー波形
+            const numBars = visualizerDataArray.length;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const baseRadius = w * 0.25;
+
+            ctx.beginPath();
+            for (let i = 0; i < numBars; i++) {
+                const angle = (i / numBars) * Math.PI * 2;
+                const value = visualizerDataArray[i] / 255;
+                const radius = baseRadius + (value * 45); // 音量に応じて大きく振幅する
+                
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // 迷路の視覚的描画 (トレーニング・目視確認用)
+        function drawVisualMaze() {
+            const canvas = document.getElementById('mazeCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!isTrainingMode || gameState === 'init') return;
+
+            // 暗めの半透明でグリッドを重ねる
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.fillRect(0, 0, w, h);
+
+            const cellW = w / mazeWidth;
+            const cellH = h / mazeHeight;
+
+            // 壁の描画
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            for (let y = 0; y < mazeHeight; y++) {
+                for (let x = 0; x < mazeWidth; x++) {
+                    const cell = maze[y][x];
+                    const cx = x * cellW;
+                    const cy = y * cellH;
+
+                    if (cell.up) { ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + cellW, cy); ctx.stroke(); }
+                    if (cell.right) { ctx.beginPath(); ctx.moveTo(cx + cellW, cy); ctx.lineTo(cx + cellW, cy + cellH); ctx.stroke(); }
+                    if (cell.down) { ctx.beginPath(); ctx.moveTo(cx, cy + cellH); ctx.lineTo(cx + cellW, cy + cellH); ctx.stroke(); }
+                    if (cell.left) { ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + cellH); ctx.stroke(); }
+                }
+            }
+
+            // 外枠をさらに補強
+            ctx.strokeStyle = '#059669';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, w, h);
+
+            // ゴール(輝く赤)
+            const gx = goal.x * cellW + cellW * 0.2;
+            const gy = goal.y * cellH + cellH * 0.2;
+            ctx.fillStyle = '#ef4444';
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(gx, gy, cellW * 0.6, cellH * 0.6);
+
+            // プレイヤー(水色のサイバーサークル)
+            const px = player.x * cellW + cellW / 2;
+            const py = player.y * cellH + cellH / 2;
+            ctx.fillStyle = '#06b6d4';
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(px, py, Math.min(cellW, cellH) * 0.25, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // シャドウリセット
+            ctx.shadowBlur = 0;
+        }
+
+        // 全体の再描画トリガー
+        function renderAll() {
+            drawVisualMaze();
+        }
+    </script>
+</body>
+</html>
