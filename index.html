@@ -3,1095 +3,976 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>音迷路 — 音だけで遊ぶ迷路ゲーム</title>
-<meta name="description" content="目の見えない方でも完全に遊べる音響迷路ゲーム。壁が近いと低い音、ゴールが近いと高い音が鳴ります。">
+<title>音迷路 — 音だけで遊べる迷路ゲーム</title>
 <style>
-  /* ===== RESET & BASE ===== */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070e;--bg2:#0d0d1c;--bg3:#141428;--bg4:#1b1b32;--bg5:#22223c;
+  --bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);--bdr3:rgba(255,255,255,0.22);
+  --tx:#dce0f4;--tx2:#8890b8;--tx3:#484870;
+  --g:#4de896;--g2:#2dc87a;--gdim:rgba(77,232,150,0.1);
+  --b:#5cacf8;--bdim:rgba(92,172,248,0.1);
+  --am:#f0b040;--amdim:rgba(240,176,64,0.1);
+  --re:#f05555;
+  --r:10px;--rlg:16px;
+}
+html{background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans','Yu Gothic',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased}
 
-  :root {
-    --bg: #0c0c0e;
-    --bg2: #141418;
-    --bg3: #1c1c22;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.15);
-    --text: #e8e8f0;
-    --text2: #9090a8;
-    --text3: #5a5a70;
-    --accent: #5af0a0;
-    --accent2: #3ad080;
-    --accent-dim: rgba(90,240,160,0.12);
-    --warn: #f0a050;
-    --info: #60b0f0;
-    --danger: #f06060;
-    --radius: 10px;
-    --radius-lg: 16px;
-  }
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;top:-60px;left:1rem;background:var(--g);color:#000;padding:.5rem 1rem;border-radius:var(--r);font-weight:700;z-index:9999;text-decoration:none;transition:top .1s}
+.skip:focus{top:1rem}
+:focus-visible{outline:2px solid var(--g);outline-offset:3px;border-radius:4px}
 
-  html { background: var(--bg); }
+#app{max-width:600px;margin:0 auto;padding:1.5rem 1rem 5rem}
+.screen{display:none}
+.screen.on{display:block}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
+/* ===== TITLE ===== */
+.title-hero{text-align:center;padding:1.5rem 0 1.25rem}
+.title-hero h1{font-size:2.1rem;font-weight:700;color:var(--g);letter-spacing:-.03em;margin-bottom:.2rem}
+.title-hero p{font-size:.88rem;color:var(--tx2)}
 
-  /* ===== VISUALLY HIDDEN (screen reader only) ===== */
-  .sr-only {
-    position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-    border: 0;
-  }
+.legend{background:var(--bg2);border:1px solid var(--bdr2);border-radius:var(--rlg);padding:1.1rem 1.4rem;margin-bottom:.9rem}
+.legend-head{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:.75rem}
+.lrow{display:flex;gap:.7rem;padding:.45rem 0;border-bottom:1px solid var(--bdr)}
+.lrow:last-child{border-bottom:none}
+.lico{font-size:1.1rem;flex-shrink:0;width:1.5rem;text-align:center;margin-top:.05rem}
+.lbody strong{display:block;font-size:.84rem;font-weight:600;color:var(--tx);margin-bottom:.05rem}
+.lbody span{font-size:.78rem;color:var(--tx2);line-height:1.5}
 
-  /* ===== LIVE REGION ===== */
-  #aria-live {
-    position: absolute;
-    width: 1px; height: 1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-  }
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rlg);padding:1.1rem 1.4rem;margin-bottom:.9rem}
+.card-lbl{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:.75rem}
 
-  /* ===== SKIP LINK ===== */
-  .skip-link {
-    position: absolute;
-    top: -100px;
-    left: 1rem;
-    background: var(--accent);
-    color: #000;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius);
-    font-weight: 600;
-    z-index: 9999;
-    transition: top 0.1s;
-  }
-  .skip-link:focus { top: 1rem; }
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem}
+.diff-btn{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx2);border-radius:var(--r);padding:.9rem .4rem;font-family:inherit;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.18rem;transition:background .12s,border-color .12s}
+.diff-btn:hover{background:var(--bg4);border-color:var(--bdr2)}
+.diff-btn[aria-pressed=true]{background:var(--gdim);border-color:var(--g);color:var(--g)}
+.diff-btn .dl{font-weight:700;font-size:.92rem}
+.diff-btn .ds{font-size:.7rem;color:var(--tx3)}
+.diff-btn[aria-pressed=true] .ds{color:rgba(77,232,150,.45)}
 
-  /* ===== FOCUS RING ===== */
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-  }
+.slrow{display:flex;align-items:center;gap:.7rem}
+.slunit{font-size:.8rem;color:var(--tx2);min-width:2.5rem;text-align:right;font-weight:600}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:5px;background:var(--bg4);border-radius:3px;border:1px solid var(--bdr2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;background:var(--g);border-radius:50%;cursor:pointer;border:2px solid #000}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--g);border-radius:50%;cursor:pointer;border:2px solid #000}
 
-  /* ===== LAYOUT ===== */
-  #app {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem 4rem;
-  }
+button{font-family:inherit;cursor:pointer;border:none;transition:background .12s,transform .08s}
+button:active{transform:scale(.97)}
+.btn-start{background:var(--g);color:#000;border-radius:var(--r);padding:1.1rem 2rem;font-size:1.1rem;font-weight:700;width:100%;letter-spacing:.02em;margin-top:.4rem;display:block;text-align:center}
+.btn-start:hover{background:var(--g2)}
+.btn-sub{background:transparent;border:1px solid var(--bdr2);color:var(--tx2);border-radius:var(--r);padding:.7rem 1.2rem;font-size:.9rem;width:100%;display:block;margin-top:.5rem;text-align:center}
+.btn-sub:hover{background:var(--bg3);color:var(--tx)}
+.btn-act{background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);border-radius:var(--r);padding:.6rem .8rem;font-size:.82rem;flex:1;min-width:0;text-align:center}
+.btn-act:hover{background:var(--bg4)}
+.btn-act[aria-pressed=true]{background:var(--gdim);border-color:var(--g);color:var(--g)}
 
-  /* ===== SCREENS ===== */
-  .screen { display: none; }
-  .screen.active { display: block; }
+.kb{font-size:.74rem;color:var(--tx3);text-align:center;line-height:2.3;margin:.4rem 0}
+kbd{background:var(--bg3);border:1px solid var(--bdr2);border-radius:4px;padding:.08rem .42rem;font-family:inherit;font-size:.74rem;color:var(--tx2)}
 
-  /* ===== HEADER ===== */
-  .game-header {
-    text-align: center;
-    padding: 2rem 0 1.5rem;
-  }
-  .game-title {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--accent);
-    margin-bottom: 0.25rem;
-  }
-  .game-tagline {
-    font-size: 0.9rem;
-    color: var(--text2);
-    margin-bottom: 0;
-  }
+/* ===== GAME HUD ===== */
+.hud{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem;margin-bottom:.7rem}
+.hcell{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:.55rem .4rem;text-align:center}
+.hk{display:block;font-size:.63rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.12rem}
+.hv{font-size:.98rem;font-weight:700;color:var(--tx)}
 
-  /* ===== CARDS ===== */
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1rem;
-  }
-  .card-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 0.75rem;
-  }
+/* ===== SPATIAL PANEL ===== */
+.spatial{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rlg);padding:.9rem 1.2rem;margin-bottom:.7rem}
+.spatial-head{font-size:.68rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;font-weight:700}
+.spatial-body{display:flex;align-items:center;gap:.9rem}
 
-  /* ===== BUTTONS ===== */
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    transition: background 0.12s, transform 0.08s, box-shadow 0.12s;
-  }
-  button:active { transform: scale(0.97); }
+/* Compass */
+.compass{position:relative;width:78px;height:78px;flex-shrink:0}
+.compass svg{width:100%;height:100%}
 
-  .btn {
-    background: var(--bg3);
-    border: 1px solid var(--border2);
-    color: var(--text);
-    border-radius: var(--radius);
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .btn:hover { background: #252530; border-color: rgba(255,255,255,0.25); }
+/* Sonar rings animation */
+.ring{opacity:0}
+.ring.pulse{animation:sonarPulse .8s ease-out forwards}
+@keyframes sonarPulse{0%{r:4;opacity:.8}100%{r:32;opacity:0}}
 
-  .btn-primary {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: var(--radius);
-    padding: 1rem 2.5rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    width: 100%;
-    justify-content: center;
-    letter-spacing: 0.02em;
-  }
-  .btn-primary:hover { background: var(--accent2); }
+/* Right side */
+.spatial-right{flex:1;min-width:0}
+.dist-lbl{font-size:.73rem;color:var(--tx2);margin-bottom:.3rem}
+.distbar-bg{height:9px;background:var(--bg4);border-radius:5px;border:1px solid var(--bdr);overflow:hidden}
+.distbar-fill{height:100%;background:var(--b);border-radius:5px;transition:width .3s,background .3s}
+.open-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-top:.55rem}
+.opill{font-size:.71rem;padding:.22rem .55rem;border-radius:20px;background:var(--bg3);border:1px solid var(--bdr);color:var(--tx3);display:flex;align-items:center;gap:.3rem;transition:all .15s}
+.opill.warn{background:rgba(240,85,85,.1);border-color:var(--re);color:var(--re)}
+.opill.open{background:rgba(77,232,150,.07);border-color:rgba(77,232,150,.25);color:var(--g)}
+.opill .odot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
 
-  .btn-secondary {
-    background: transparent;
-    border: 1px solid var(--border2);
-    color: var(--text2);
-    border-radius: var(--radius);
-    padding: 0.7rem 1.25rem;
-    font-size: 0.9rem;
-    width: 100%;
-    justify-content: center;
-    margin-top: 0.5rem;
-  }
-  .btn-secondary:hover { background: var(--bg3); color: var(--text); }
+/* ===== CANVAS ===== */
+#maze-wrap{position:relative;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rlg);margin-bottom:.7rem;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:260px}
+#maze-canvas{display:block;max-width:100%;image-rendering:pixelated}
 
-  /* ===== DIFFICULTY SELECTOR ===== */
-  .diff-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.5rem;
-  }
-  .diff-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    border-radius: var(--radius);
-    padding: 0.9rem 0.5rem;
-    font-size: 0.9rem;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    align-items: center;
-  }
-  .diff-btn[aria-pressed="true"] {
-    background: var(--accent-dim);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .diff-btn:hover { border-color: var(--border2); }
-  .diff-label { font-weight: 600; font-size: 0.95rem; }
-  .diff-sub { font-size: 0.72rem; color: var(--text3); }
-  .diff-btn[aria-pressed="true"] .diff-sub { color: rgba(90,240,160,0.5); }
+/* ===== DPAD ===== */
+.actrow{display:flex;gap:.45rem;margin-bottom:.7rem}
+.dpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.38rem;max-width:188px;margin:0 auto .7rem}
+.dpad-btn{background:var(--bg3);border:1px solid var(--bdr2);color:var(--tx);border-radius:var(--r);height:60px;font-size:1.35rem;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer}
+.dpad-btn:hover{background:var(--bg4)}
+.dpad-btn:active{background:var(--gdim);border-color:var(--g);transform:scale(.93)}
+.dpad-ctr{display:flex;align-items:center;justify-content:center}
 
-  /* ===== VOLUME SLIDER ===== */
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .slider-label {
-    font-size: 0.85rem;
-    color: var(--text2);
-    min-width: 2.5rem;
-  }
-  input[type="range"] {
-    flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    background: var(--bg3);
-    border-radius: 2px;
-    outline: none;
-    border: 1px solid var(--border2);
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px; height: 20px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #000;
-  }
-  input[type="range"]::-moz-range-thumb {
-    width: 20px; height: 20px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #000;
-  }
-  .slider-val {
-    font-size: 0.85rem;
-    color: var(--text);
-    font-weight: 600;
-    min-width: 2.5rem;
-    text-align: right;
-  }
+/* ===== CLEAR ===== */
+.clr-hero{text-align:center;padding:2.5rem 0 1.25rem}
+.clr-icon{font-size:3.5rem;display:block;margin-bottom:.45rem}
+.clr-h{font-size:1.75rem;font-weight:700;color:var(--g);margin-bottom:.3rem}
+.clr-sub{font-size:.92rem;color:var(--tx2);margin-bottom:1.5rem}
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-bottom:1.4rem}
+.scell{background:var(--bg3);border-radius:var(--r);padding:.7rem .9rem;text-align:center}
+.sk{display:block;font-size:.68rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.18rem}
+.sv{font-size:1.35rem;font-weight:700;color:var(--tx)}
+.allclear{background:var(--amdim);border:1px solid rgba(240,176,64,.3);border-radius:var(--r);padding:.7rem 1rem;text-align:center;color:var(--am);font-size:.88rem;margin-bottom:.9rem}
 
-  /* ===== INFO BOX ===== */
-  .info-box {
-    background: rgba(96,176,240,0.07);
-    border: 1px solid rgba(96,176,240,0.2);
-    border-radius: var(--radius);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-  }
-  .info-box p { font-size: 0.88rem; color: var(--text2); line-height: 1.8; }
-  .info-box strong { color: var(--text); font-weight: 600; }
-
-  /* ===== HUD ===== */
-  .hud {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .hud-item {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.6rem 0.75rem;
-    text-align: center;
-  }
-  .hud-key { font-size: 0.7rem; color: var(--text3); display: block; margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.06em; }
-  .hud-val { font-size: 1.05rem; font-weight: 700; color: var(--text); }
-
-  /* ===== MAZE CANVAS ===== */
-  #maze-wrap {
-    position: relative;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    margin-bottom: 1rem;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 320px;
-  }
-  #maze-canvas {
-    display: block;
-    max-width: 100%;
-    max-height: 420px;
-    image-rendering: pixelated;
-  }
-  /* Low vision helper overlay toggle */
-  #maze-wrap.dark-mode canvas { opacity: 0; }
-
-  /* ===== DIRECTION BUTTONS ===== */
-  .dpad {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.4rem;
-    max-width: 200px;
-    margin: 0 auto 1rem;
-  }
-  .dpad-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border2);
-    color: var(--text);
-    border-radius: var(--radius);
-    height: 58px;
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  .dpad-btn:hover { background: var(--bg2); }
-  .dpad-btn:active { background: var(--accent-dim); border-color: var(--accent); transform: scale(0.93); }
-  .dpad-center { background: transparent; border: none; cursor: default; }
-
-  /* ===== TOGGLE BUTTONS ===== */
-  .action-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
-  }
-  .toggle-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    border-radius: var(--radius);
-    padding: 0.55rem 1rem;
-    font-size: 0.85rem;
-    flex: 1;
-    min-width: 120px;
-    text-align: center;
-  }
-  .toggle-btn[aria-pressed="true"] {
-    background: var(--accent-dim);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .toggle-btn:hover { border-color: var(--border2); }
-
-  /* ===== KEYBOARD HINT ===== */
-  .kb-hint {
-    font-size: 0.78rem;
-    color: var(--text3);
-    text-align: center;
-    line-height: 2;
-    margin-bottom: 0.75rem;
-  }
-  kbd {
-    background: var(--bg3);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    padding: 0.1rem 0.4rem;
-    font-family: inherit;
-    font-size: 0.78rem;
-    color: var(--text2);
-  }
-
-  /* ===== CLEAR SCREEN ===== */
-  .clear-hero {
-    text-align: center;
-    padding: 2.5rem 0;
-  }
-  .clear-icon {
-    font-size: 4rem;
-    margin-bottom: 0.5rem;
-    display: block;
-    animation: pop 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
-  }
-  @keyframes pop {
-    0%  { transform: scale(0.3); opacity: 0; }
-    70% { transform: scale(1.2); opacity: 1; }
-    100%{ transform: scale(1);   opacity: 1; }
-  }
-  .clear-title { font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem; }
-  .clear-sub   { font-size: 1rem; color: var(--text2); margin-bottom: 2rem; }
-
-  /* ===== STATS ROW ===== */
-  .stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-  .stat-card {
-    background: var(--bg3);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    text-align: center;
-  }
-  .stat-label { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 0.2rem; }
-  .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
-
-  /* ===== INSTRUCTIONS ===== */
-  .instruction-list {
-    list-style: none;
-    padding: 0;
-  }
-  .instruction-list li {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    padding: 0.55rem 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.88rem;
-    color: var(--text2);
-    line-height: 1.6;
-  }
-  .instruction-list li:last-child { border-bottom: none; }
-  .instruction-list .icon {
-    font-size: 1.1rem;
-    flex-shrink: 0;
-    margin-top: 0.05rem;
-  }
-
-  /* ===== REDUCED MOTION ===== */
-  @media (prefers-reduced-motion: reduce) {
-    .clear-icon { animation: none; }
-    * { transition: none !important; }
-  }
-
-  /* ===== MOBILE RESPONSIVE ===== */
-  @media (max-width: 480px) {
-    #app { padding: 1rem 0.75rem 3rem; }
-    .game-title { font-size: 1.6rem; }
-    .dpad-btn { height: 52px; font-size: 1.3rem; }
-    .hud { grid-template-columns: 1fr 1fr 1fr; }
-    .hud-val { font-size: 0.95rem; }
-  }
+@media(max-width:460px){
+  #app{padding:1rem .7rem 4rem}
+  .title-hero h1{font-size:1.65rem}
+  .dpad-btn{height:54px;font-size:1.2rem}
+  .hv{font-size:.88rem}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 
-<!-- Skip navigation -->
-<a class="skip-link" href="#main-content">本文へスキップ</a>
+<a class="skip" href="#main">本文へスキップ</a>
+<div id="live-a" aria-live="assertive" aria-atomic="true" class="sr"></div>
+<div id="live-p" aria-live="polite"    aria-atomic="true" class="sr"></div>
 
-<!-- Screen reader live region (aria-live) -->
-<div id="aria-live" aria-live="assertive" aria-atomic="true" role="status"></div>
-<div id="aria-polite" aria-live="polite" aria-atomic="true" role="status" class="sr-only"></div>
-
-<main id="main-content">
+<main id="main">
 <div id="app">
 
-  <!-- ========== TITLE SCREEN ========== -->
-  <section id="screen-title" class="screen active" aria-label="タイトル画面">
+<!-- ==================== TITLE ==================== -->
+<section id="scr-title" class="screen on" aria-labelledby="t-h1">
 
-    <header class="game-header">
-      <h1 class="game-title" tabindex="-1" id="title-h1">🔊 音迷路</h1>
-      <p class="game-tagline">目を閉じて、耳だけを頼りにゴールを目指そう</p>
-    </header>
+  <div class="title-hero">
+    <h1 id="t-h1" tabindex="-1">🔊 音迷路</h1>
+    <p>目を閉じて、耳だけでゴールを目指そう</p>
+  </div>
 
-    <div class="info-box" role="note" aria-label="音の説明">
-      <p>
-        <strong>低い音（左右）</strong> = 壁が近い。左から聞こえると左側の壁、右から聞こえると右側の壁が近い。<br>
-        <strong>明るい高い音</strong> = ゴールが近い。近いほど大きく、高い音になる。<br>
-        <strong>ドンという音</strong> = 壁にぶつかった。
-      </p>
-    </div>
+  <div class="legend" role="note" aria-label="音の説明">
+    <p class="legend-head">音の説明</p>
 
-    <!-- Difficulty -->
-    <div class="card" role="group" aria-labelledby="diff-heading">
-      <p class="card-title" id="diff-heading">難易度を選んでください</p>
-      <div class="diff-grid">
-        <button class="diff-btn" data-diff="easy" aria-pressed="true" onclick="selectDiff('easy')">
-          <span class="diff-label">やさしい</span>
-          <span class="diff-sub">7×7 / 5ステージ</span>
-        </button>
-        <button class="diff-btn" data-diff="normal" aria-pressed="false" onclick="selectDiff('normal')">
-          <span class="diff-label">ふつう</span>
-          <span class="diff-sub">11×11 / 8ステージ</span>
-        </button>
-        <button class="diff-btn" data-diff="hard" aria-pressed="false" onclick="selectDiff('hard')">
-          <span class="diff-label">むずかしい</span>
-          <span class="diff-sub">15×15 / 12ステージ</span>
-        </button>
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">📡</span>
+      <div class="lbody">
+        <strong>ソナー（Rキー / 確認ボタン）</strong>
+        <span>「ピン」と鳴った後、前→右→後→左の順に各方向の壁の遠さが聞こえます。
+        <em>反応が速くて低い音＝すぐ近くに壁</em>、<em>遅れて高い音＝遠くに壁</em>、<em>反応なし＝長い通路</em>。</span>
       </div>
     </div>
 
-    <!-- Volume -->
-    <div class="card">
-      <p class="card-title" id="vol-label">音量</p>
-      <div class="slider-row">
-        <span class="slider-label" aria-hidden="true">🔈</span>
-        <input type="range" id="vol-slider" min="0" max="100" value="70" step="1"
-          aria-labelledby="vol-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"
-          oninput="setVol(this.value)">
-        <span class="slider-val" id="vol-display" aria-live="polite">70%</span>
-        <span class="slider-label" aria-hidden="true">🔊</span>
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">🌀</span>
+      <div class="lbody">
+        <strong>歩くたびに自動スキャン（低音〜高音）</strong>
+        <span>一歩ごとに前・右・後・左の4方向を素早くスキャン。
+        低い音＝すぐ壁、中音＝1マス先、高い音＝長い通路。方向はステレオで分かります。</span>
       </div>
     </div>
 
-    <!-- Instructions -->
-    <div class="card">
-      <p class="card-title">操作方法</p>
-      <ul class="instruction-list" role="list">
-        <li><span class="icon" aria-hidden="true">⌨️</span><span>キーボード：矢印キー（↑↓←→）または <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> で移動</span></li>
-        <li><span class="icon" aria-hidden="true">📱</span><span>スマホ・タブレット：画面の矢印ボタンで移動</span></li>
-        <li><span class="icon" aria-hidden="true">🔊</span><span>イヤホン・ヘッドホン推奨。左右の壁の音が聞き取りやすくなります</span></li>
-        <li><span class="icon" aria-hidden="true">😌</span><span>目を閉じて音だけを頼りに遊べます。迷路が見えていなくてもゴールできます</span></li>
-      </ul>
-    </div>
-
-    <button class="btn btn-primary" onclick="startGame()" aria-label="ゲームスタート：音迷路を開始する">
-      ゲームスタート ▶
-    </button>
-
-  </section>
-
-  <!-- ========== GAME SCREEN ========== -->
-  <section id="screen-game" class="screen" aria-label="ゲーム画面" aria-describedby="game-desc">
-    <p id="game-desc" class="sr-only">
-      矢印キーまたは画面のボタンで移動してください。
-      壁に近づくと低い音が、ゴールに近づくと高い音が鳴ります。
-      ゴールに到達すると自動的にクリア画面に進みます。
-    </p>
-
-    <!-- HUD -->
-    <div class="hud" role="status" aria-label="ゲーム状態">
-      <div class="hud-item">
-        <span class="hud-key">難易度</span>
-        <span class="hud-val" id="hud-diff">—</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-key">ステージ</span>
-        <span class="hud-val" id="hud-stage">—</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-key">手数</span>
-        <span class="hud-val" id="hud-steps">0</span>
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">🎯</span>
+      <div class="lbody">
+        <strong>ゴールの方角と距離（高い音）</strong>
+        <span>ゴールが右にあれば右耳から、左なら左耳から高い音が聞こえます。
+        近いほど音が高く・速く脈打ちます。毎歩自動で鳴ります。</span>
       </div>
     </div>
 
-    <!-- Toggle buttons -->
-    <div class="action-row">
-      <button class="toggle-btn" id="btn-dark" aria-pressed="false" onclick="toggleDark()"
-        aria-label="画面を真っ暗にする（音だけモード）">
-        🌑 真っ暗モード
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">🗺️</span>
+      <div class="lbody">
+        <strong>現在地の読み上げ（Tabキー）</strong>
+        <span>高いビープ音で横位置（左=1回〜右=5回）、低いビープ音で縦位置（上=1回〜下=5回）を伝えます。
+        「今自分がどのあたりにいるか」が分かります。</span>
+      </div>
+    </div>
+
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">🏛️</span>
+      <div class="lbody">
+        <strong>地形ランドマーク音</strong>
+        <span>行き止まりは下降する音、T字路は単音、十字路は上昇する音が鳴ります。
+        迷路の中での「ここはどんな場所か」が分かります。</span>
+      </div>
+    </div>
+
+    <div class="lrow">
+      <span class="lico" aria-hidden="true">👣</span>
+      <div class="lbody">
+        <strong>通ったことのある道</strong>
+        <span>一度通った道を再び歩くと、一歩が少し低く鈍い音になります。
+        「ここは前に通った」と気づけます。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Difficulty -->
+  <div class="card" role="group" aria-labelledby="diff-h">
+    <p class="card-lbl" id="diff-h">難易度</p>
+    <div class="diff-grid">
+      <button class="diff-btn" data-diff="easy"   aria-pressed="true"  onclick="selDiff('easy')">
+        <span class="dl">やさしい</span><span class="ds">7×7 / 5面</span>
       </button>
-      <button class="toggle-btn" id="btn-hint" aria-pressed="false" onclick="playHint()"
-        aria-label="今の周囲の音をもう一度再生する">
-        🔁 音を再生
+      <button class="diff-btn" data-diff="normal" aria-pressed="false" onclick="selDiff('normal')">
+        <span class="dl">ふつう</span><span class="ds">11×11 / 8面</span>
+      </button>
+      <button class="diff-btn" data-diff="hard"   aria-pressed="false" onclick="selDiff('hard')">
+        <span class="dl">むずかしい</span><span class="ds">15×15 / 12面</span>
       </button>
     </div>
+  </div>
 
-    <!-- Maze canvas -->
-    <div id="maze-wrap" role="img" aria-label="迷路のビジュアル表示（音が主な手がかりです）">
-      <canvas id="maze-canvas" aria-hidden="true"></canvas>
+  <!-- Volume -->
+  <div class="card">
+    <p class="card-lbl" id="vol-h">音量</p>
+    <div class="slrow">
+      <span aria-hidden="true">🔈</span>
+      <input type="range" id="vol-sl" min="0" max="100" value="75" step="1"
+        aria-labelledby="vol-h" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75"
+        oninput="setVol(this.value)">
+      <span class="slunit" id="vol-disp" aria-live="polite">75%</span>
+      <span aria-hidden="true">🔊</span>
     </div>
+  </div>
 
-    <!-- D-Pad -->
-    <nav aria-label="移動ボタン">
-      <div class="dpad" role="group" aria-label="移動方向を選んでください">
-        <div></div>
-        <button class="dpad-btn" onclick="move(0,-1)" aria-label="上に移動">↑</button>
-        <div></div>
-        <button class="dpad-btn" onclick="move(-1,0)" aria-label="左に移動">←</button>
-        <div class="dpad-center"></div>
-        <button class="dpad-btn" onclick="move(1,0)" aria-label="右に移動">→</button>
-        <div></div>
-        <button class="dpad-btn" onclick="move(0,1)" aria-label="下に移動">↓</button>
-        <div></div>
-      </div>
-    </nav>
-
-    <p class="kb-hint" aria-hidden="true">
-      <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> または
-      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> でも移動できます
+  <div class="card">
+    <p class="card-lbl">操作方法</p>
+    <p class="kb">
+      <kbd>↑↓←→</kbd> または <kbd>W A S D</kbd>：移動<br>
+      <kbd>R</kbd>：ソナー＋方角の読み上げ　<kbd>Tab</kbd>：現在地の座標<br>
+      <kbd>Space</kbd>：ゴール方角のみ再生　<kbd>Esc</kbd>：タイトルへ<br>
+      スマホ：矢印ボタン または スワイプ
     </p>
+  </div>
 
-    <button class="btn btn-secondary" onclick="showTitle()" aria-label="タイトル画面に戻る">
-      ← タイトルへ戻る
-    </button>
+  <button class="btn-start" onclick="startGame()" aria-label="ゲームスタート">ゲームスタート ▶</button>
 
-  </section>
+</section>
 
-  <!-- ========== CLEAR SCREEN ========== -->
-  <section id="screen-clear" class="screen" aria-label="クリア画面" aria-live="assertive">
+<!-- ==================== GAME ==================== -->
+<section id="scr-game" class="screen" aria-label="ゲーム中" tabindex="-1">
+  <p class="sr" id="gdesc">
+    矢印キーで移動。Rでソナー確認、Tabで現在地座標。ゴールの音を目指してください。
+  </p>
 
-    <div class="clear-hero">
-      <span class="clear-icon" role="img" aria-label="祝福のきらきら">🎉</span>
-      <h2 class="clear-title" id="clear-title">ゴール！</h2>
-      <p class="clear-sub" id="clear-sub">ステージをクリアしました</p>
-    </div>
+  <div class="hud" role="status" aria-label="ゲーム状況">
+    <div class="hcell"><span class="hk">難易度</span><span class="hv" id="hud-diff">—</span></div>
+    <div class="hcell"><span class="hk">ステージ</span><span class="hv" id="hud-stg">—</span></div>
+    <div class="hcell"><span class="hk">手数</span><span class="hv" id="hud-stp">0</span></div>
+  </div>
 
-    <div class="stats-row" role="status" aria-label="クリア結果">
-      <div class="stat-card">
-        <span class="stat-label">手数</span>
-        <span class="stat-value" id="clear-steps">0</span>
+  <!-- Spatial awareness panel -->
+  <div class="spatial" role="region" aria-label="空間情報パネル">
+    <p class="spatial-head">ゴール方向・周囲の空間</p>
+    <div class="spatial-body">
+
+      <!-- Compass with sonar rings -->
+      <div class="compass" aria-hidden="true">
+        <svg viewBox="0 0 78 78" xmlns="http://www.w3.org/2000/svg">
+          <!-- Sonar rings -->
+          <circle class="ring" id="ring1" cx="39" cy="39" r="4" fill="none" stroke="rgba(77,232,150,0.6)" stroke-width="1.5"/>
+          <circle class="ring" id="ring2" cx="39" cy="39" r="4" fill="none" stroke="rgba(77,232,150,0.4)" stroke-width="1"/>
+          <!-- Background ring -->
+          <circle cx="39" cy="39" r="34" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+          <!-- Cardinal marks -->
+          <text x="39" y="7" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="7">前</text>
+          <text x="72" y="42" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="7">右</text>
+          <text x="39" y="76" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="7">後</text>
+          <text x="6"  y="42" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="7">左</text>
+          <!-- Goal arrow (rotated by JS) -->
+          <g id="goal-arrow" transform="rotate(0,39,39)">
+            <polygon points="39,9 44.5,27 39,23 33.5,27" fill="#4de896" opacity=".9"/>
+            <line x1="39" y1="22" x2="39" y2="52" stroke="#4de896" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+          </g>
+          <!-- Player dot -->
+          <circle cx="39" cy="39" r="5.5" fill="#5cacf8"/>
+          <circle cx="39" cy="39" r="3" fill="#a0d0ff"/>
+        </svg>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">評価</span>
-        <span class="stat-value" id="clear-rank">—</span>
+
+      <div class="spatial-right">
+        <p class="dist-lbl">ゴールまでの距離</p>
+        <div class="distbar-bg" role="progressbar" aria-label="ゴールまでの距離"
+          aria-valuemin="0" aria-valuemax="100" id="dbar-aria" aria-valuenow="0">
+          <div class="distbar-fill" id="dbar" style="width:5%"></div>
+        </div>
+
+        <div class="open-grid" aria-hidden="true">
+          <div class="opill" id="pp-U"><span class="odot"></span>↑ 前</div>
+          <div class="opill" id="pp-R"><span class="odot"></span>→ 右</div>
+          <div class="opill" id="pp-D"><span class="odot"></span>↓ 後ろ</div>
+          <div class="opill" id="pp-L"><span class="odot"></span>← 左</div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <button class="btn btn-primary" id="btn-next" onclick="nextStage()"
-      aria-label="次のステージへ進む">
-      次のステージへ →
-    </button>
-    <button class="btn btn-secondary" onclick="replayStage()"
-      aria-label="同じステージをもう一度遊ぶ">
-      もう一度遊ぶ
-    </button>
-    <button class="btn btn-secondary" onclick="showTitle()"
-      aria-label="タイトル画面に戻る">
-      ← タイトルへ戻る
-    </button>
+  <!-- Maze canvas -->
+  <div id="maze-wrap"><canvas id="maze-canvas" aria-hidden="true"></canvas></div>
 
-  </section>
+  <!-- Action row -->
+  <div class="actrow">
+    <button class="btn-act" onclick="doSonar()" aria-label="ソナー：周囲と方角を音で確認">📡 ソナー <kbd>R</kbd></button>
+    <button class="btn-act" onclick="doCoords()" aria-label="現在地：座標を音で確認">📍 現在地 <kbd>Tab</kbd></button>
+    <button class="btn-act" id="btn-dark" aria-pressed="false" onclick="togDark()" aria-label="真っ暗モード">🌑 真っ暗</button>
+  </div>
 
-</div><!-- /#app -->
-</main>
+  <!-- D-Pad -->
+  <nav aria-label="移動ボタン">
+    <div class="dpad">
+      <div></div>
+      <button class="dpad-btn" onclick="mv(0,-1)" aria-label="上へ移動">↑</button>
+      <div></div>
+      <button class="dpad-btn" onclick="mv(-1,0)" aria-label="左へ移動">←</button>
+      <div class="dpad-ctr" aria-hidden="true">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--bg4);border:1px solid var(--bdr2)"></div>
+      </div>
+      <button class="dpad-btn" onclick="mv(1,0)"  aria-label="右へ移動">→</button>
+      <div></div>
+      <button class="dpad-btn" onclick="mv(0,1)"  aria-label="下へ移動">↓</button>
+      <div></div>
+    </div>
+  </nav>
+
+  <p class="kb" aria-hidden="true">
+    <kbd>↑↓←→</kbd>/<kbd>WASD</kbd> 移動 &nbsp;｜&nbsp;
+    <kbd>R</kbd> ソナー &nbsp;｜&nbsp;
+    <kbd>Tab</kbd> 現在地 &nbsp;｜&nbsp;
+    <kbd>Space</kbd> ゴール音 &nbsp;｜&nbsp;
+    <kbd>Esc</kbd> タイトル
+  </p>
+
+  <button class="btn-sub" onclick="showTitle()">← タイトルへ戻る</button>
+</section>
+
+<!-- ==================== CLEAR ==================== -->
+<section id="scr-clear" class="screen" aria-label="クリア">
+  <div class="clr-hero">
+    <span class="clr-icon" role="img" aria-label="お祝い">🎉</span>
+    <h2 class="clr-h" id="clr-h" tabindex="-1">ゴール！</h2>
+    <p class="clr-sub" id="clr-sub">クリアしました</p>
+  </div>
+  <div id="all-badge" class="allclear" hidden>🏆 全ステージ制覇！</div>
+  <div class="stats2" role="status" aria-label="クリア結果">
+    <div class="scell"><span class="sk">手数</span><span class="sv" id="clr-stp">0</span></div>
+    <div class="scell"><span class="sk">評価</span><span class="sv" id="clr-rnk">—</span></div>
+  </div>
+  <button class="btn-start" id="btn-next" onclick="nextStage()">次のステージへ →</button>
+  <button class="btn-sub" onclick="replayStage()">もう一度</button>
+  <button class="btn-sub" onclick="showTitle()">← タイトルへ戻る</button>
+</section>
+
+</div></main>
 
 <script>
-/* =====================================================
-   SOUND MAZE — Full Accessibility Version
-   ===================================================== */
+/* ===================================================================
+   音迷路 — Complete Spatial Audio Edition
+   ===================================================================
+   Sound system:
+   1. SONAR SCAN (R key)
+      - Initial ping → 4 directional echoes (N→E→S→W)
+      - Echo DELAY encodes distance: quick echo = near wall, slow echo = far wall
+      - Echo FREQUENCY: low thud (close) → high ring (far) → silence (open)
+      - Followed by goal direction signal
+   2. MINI-SCAN (auto, after every step)
+      - 4 quick directional tones in 320ms
+      - Low = wall adjacent, Mid = 1 cell, High = long corridor
+      - Stereo pan tells direction
+   3. GOAL SIGNAL
+      - Pan to goal direction (left/right)
+      - Pitch + pulse rate = proximity
+   4. LANDMARK SOUNDS
+      - Dead end, T-junction, crossroads = distinct melody cues
+   5. COORDINATE READOUT (Tab key)
+      - High beeps = X position (1–5), Low beeps = Y position (1–5)
+   6. REVISIT DETECTION
+      - Different step sound on previously-visited cells
+   7. ROOM ACOUSTICS
+      - Step echo delay varies by corridor openness
+   =================================================================== */
 
-/* ---- CONFIG ---- */
-const DIFFS = {
-  easy:   { size: 7,  stages: 5,  label: 'やさしい' },
-  normal: { size: 11, stages: 8,  label: 'ふつう'   },
-  hard:   { size: 15, stages: 12, label: 'むずかしい'}
-};
+const DIFFS={easy:{size:7,stages:5,lbl:'やさしい'},normal:{size:11,stages:8,lbl:'ふつう'},hard:{size:15,stages:12,lbl:'むずかしい'}};
 
-/* ---- STATE ---- */
-let maze = [], mazeSize = 7;
-let px = 1, py = 1, gx, gy;
-let steps = 0;
-let currentDiff = 'easy';
-let currentStage = 1;
-let masterVol = 0.70;
-let darkMode = false;
-let audioCtx = null;
-let canvas, ctx;
+// State
+let maze=[],mazeSize=7;
+let px=1,py=1,gx,gy;
+let steps=0,curDiff='easy',curStage=1;
+let masterVol=0.75,isDark=false;
+let audioCtx=null;
+let canvasEl,ctx2d;
+let visited=new Set(); // "x,y" strings
 
-/* ---- AUDIO CONTEXT ---- */
-function getAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+// ===== AUDIO ENGINE =====
+function AC(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
   return audioCtx;
 }
 
-/* ---- LOW-LEVEL TONE ---- */
-function tone(freq, vol, dur, type = 'sine', pan = 0, delay = 0) {
-  try {
-    const a = getAudio();
-    const now = a.currentTime + delay;
-    const osc = a.createOscillator();
-    const gain = a.createGain();
-    const panner = a.createStereoPanner();
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(Math.min(vol * masterVol, 1), now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    panner.pan.value = Math.max(-1, Math.min(1, pan));
-
-    osc.connect(gain);
-    gain.connect(panner);
-    panner.connect(a.destination);
-    osc.start(now);
-    osc.stop(now + dur + 0.02);
-  } catch(e) {}
+function T(freq,vol,dur,type='sine',pan=0,delay=0){
+  try{
+    const ac=AC(), t=ac.currentTime+delay;
+    const osc=ac.createOscillator();
+    const gain=ac.createGain();
+    const pan_=ac.createStereoPanner();
+    osc.type=type;
+    osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0.001,t);
+    gain.gain.linearRampToValueAtTime(Math.min(vol*masterVol,0.9),t+0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    pan_.pan.value=Math.max(-1,Math.min(1,pan));
+    osc.connect(gain);gain.connect(pan_);pan_.connect(ac.destination);
+    osc.start(t);osc.stop(t+dur+0.05);
+  }catch(e){}
 }
 
-/* ---- WALL SOUND ---- */
-// Lower pitched sawtooth, panned left/right based on wall distance
-function playWallSounds(distL, distR, distU, distD) {
-  const threshold = 2.5;
-  // Left wall
-  if (distL <= threshold) {
-    const ratio = 1 - distL / threshold;
-    const vol = ratio * ratio * 0.65;
-    const freq = 55 + (1 - ratio) * 45; // 55–100 Hz, closer = lower
-    tone(freq, vol, 0.22, 'sawtooth', -0.85);
-  }
-  // Right wall
-  if (distR <= threshold) {
-    const ratio = 1 - distR / threshold;
-    const vol = ratio * ratio * 0.65;
-    const freq = 55 + (1 - ratio) * 45;
-    tone(freq, vol, 0.22, 'sawtooth', 0.85);
-  }
-  // Front wall (up)
-  if (distU <= threshold) {
-    const ratio = 1 - distU / threshold;
-    const vol = ratio * ratio * 0.40;
-    const freq = 60 + (1 - ratio) * 30;
-    tone(freq, vol, 0.18, 'sawtooth', -0.2);
-  }
-  // Back wall (down)
-  if (distD <= threshold) {
-    const ratio = 1 - distD / threshold;
-    const vol = ratio * ratio * 0.40;
-    const freq = 60 + (1 - ratio) * 30;
-    tone(freq, vol, 0.18, 'sawtooth', 0.2);
-  }
-  // Very close walls in two directions simultaneously → dual tone warning
-  if (distL <= 1 && distR <= 1) {
-    tone(45, 0.4, 0.25, 'sawtooth', 0, 0.05);
-  }
+// Vibrato tone (for proximity pulsing)
+function TV(freq,vol,dur,vibHz,pan=0,delay=0){
+  try{
+    const ac=AC(),t=ac.currentTime+delay;
+    const osc=ac.createOscillator();
+    const lfo=ac.createOscillator();
+    const lfog=ac.createGain();
+    const gain=ac.createGain();
+    const pan_=ac.createStereoPanner();
+    osc.type='sine'; osc.frequency.value=freq;
+    lfo.frequency.value=vibHz; lfog.gain.value=freq*0.04;
+    lfo.connect(lfog); lfog.connect(osc.frequency);
+    gain.gain.setValueAtTime(0.001,t);
+    gain.gain.linearRampToValueAtTime(Math.min(vol*masterVol,0.9),t+0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    pan_.pan.value=Math.max(-1,Math.min(1,pan));
+    osc.connect(gain);gain.connect(pan_);pan_.connect(ac.destination);
+    lfo.start(t);lfo.stop(t+dur+0.05);
+    osc.start(t);osc.stop(t+dur+0.05);
+  }catch(e){}
 }
 
-/* ---- GOAL SOUND ---- */
-function playGoalSound(dist, maxDist) {
-  const ratio = 1 - dist / maxDist;
-  const clamped = Math.max(0, Math.min(1, ratio));
-  // Volume: exponential ramp from soft to loud
-  const vol = 0.04 + clamped * clamped * 0.7;
-  // Frequency: 400Hz (far) → 1400Hz (close)
-  const freq = 400 + clamped * 1000;
-  tone(freq, vol, 0.35, 'sine', 0);
-  // Harmonic overtone when very close
-  if (clamped > 0.6) {
-    tone(freq * 2, vol * 0.4, 0.3, 'sine', 0, 0.08);
-  }
-  if (clamped > 0.85) {
-    tone(freq * 3, vol * 0.2, 0.25, 'sine', 0, 0.16);
-  }
-}
+// ===== SONAR SCAN =====
+// Full 4-direction echo scan: each direction plays indicator pip then echo at delay=dist*52ms
+// Echo freq/type encodes distance: close=low sawtooth thud, far=high sine ring, open=very faint
+function playSonar(){
+  AC();
+  // Initial ping
+  T(1300,0.16,0.07,'sine',0,0.0);
 
-/* ---- BUMP SOUND ---- */
-function playBumpSound() {
-  tone(50, 0.55, 0.12, 'square', 0);
-  tone(40, 0.3, 0.18, 'sawtooth', 0, 0.05);
-}
-
-/* ---- CLEAR FANFARE ---- */
-function playClearFanfare() {
-  const melody = [
-    [523, 0],   // C5
-    [659, 0.12],[// E5
-    784, 0.24], // G5
-    [1047,0.36],// C6
-    [784, 0.52],
-    [1047,0.64],
-    [1319,0.76] // E6
+  const DIRS=[
+    {dx:0,dy:-1, pan:0.0,  ind:900,  lbl:'前(北)'},
+    {dx:1,dy:0,  pan:0.88, ind:720,  lbl:'右(東)'},
+    {dx:0,dy:1,  pan:0.0,  ind:530,  lbl:'後(南)'},
+    {dx:-1,dy:0, pan:-0.88,ind:720,  lbl:'左(西)'},
   ];
-  melody.forEach(([f, d]) => tone(f, 0.55, 0.25, 'sine', 0, d));
+
+  DIRS.forEach((d,i)=>{
+    const dist=wd(px,py,d.dx,d.dy);
+    const t0=0.12+i*0.42; // each direction slot = 420ms
+
+    // Direction indicator pip
+    T(d.ind,0.08,0.05,'sine',d.pan,t0);
+
+    // Echo: delay encodes distance (52ms per cell, max 260ms within slot)
+    const echoT=t0+Math.min(dist*0.052,0.26);
+
+    // Echo characteristics by distance
+    let ef,ev,et;
+    if(dist<=1)     {ef=70;  ev=0.40;et='sawtooth';}  // wall touching: deep thud
+    else if(dist<=2){ef=130; ev=0.26;et='sawtooth';}  // 1 cell: lower thud
+    else if(dist<=3){ef=250; ev=0.16;et='sine';}      // 2-3 cells: medium
+    else if(dist<=5){ef=400; ev=0.09;et='sine';}      // 4-5 cells: lighter ring
+    else            {ef=580; ev=0.04;et='sine';}      // 6+: distant faint ring
+
+    T(ef,ev,0.11+dist*0.008,et,d.pan,echoT);
+  });
+
+  // Trigger sonar ring animation
+  pulseSonarRings();
 }
 
-/* ---- STEP SOUND (subtle confirmation) ---- */
-function playStepSound() {
-  tone(260, 0.06, 0.06, 'sine', 0);
+function pulseSonarRings(){
+  ['ring1','ring2'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.classList.remove('pulse');
+    setTimeout(()=>el.classList.add('pulse'),i*200);
+  });
 }
 
-/* ---- FULL SURROUNDINGS SOUND ---- */
-function playSurroundings() {
-  const dL = wallDist(px, py, -1, 0);
-  const dR = wallDist(px, py,  1, 0);
-  const dU = wallDist(px, py,  0,-1);
-  const dD = wallDist(px, py,  0, 1);
-  playWallSounds(dL, dR, dU, dD);
-  const dist = eucDist(px, py, gx, gy);
-  const maxDist = eucDist(1, 1, mazeSize - 2, mazeSize - 2);
-  setTimeout(() => playGoalSound(dist, maxDist), 220);
+// ===== MINI-SCAN (after every move) =====
+// 4 quick tones, ~320ms total
+// 3 tiers: low(wall adjacent), mid(1 cell), high(long corridor)
+function playMiniScan(){
+  const DIRS=[
+    {dx:0,dy:-1, pan:0.0,  lo:150,mi:380,hi:820},  // N (center, higher base)
+    {dx:1,dy:0,  pan:0.85, lo:140,mi:360,hi:780},  // E (right)
+    {dx:0,dy:1,  pan:0.0,  lo:120,mi:300,hi:640},  // S (center, lower base to differ from N)
+    {dx:-1,dy:0, pan:-0.85,lo:140,mi:360,hi:780},  // W (left)
+  ];
+  DIRS.forEach((d,i)=>{
+    const dist=wd(px,py,d.dx,d.dy);
+    let freq,type,vol;
+    if(dist<=1)     {freq=d.lo;type='sawtooth';vol=0.11;}
+    else if(dist<=2){freq=d.mi;type='sine';    vol=0.07;}
+    else            {freq=d.hi;type='sine';    vol=0.06;}
+    T(freq,vol,0.06,type,d.pan,0.05+i*0.082);
+  });
 }
 
-/* ---- MAZE GENERATION (recursive backtracker) ---- */
-function generateMaze(size) {
-  const g = [];
-  for (let y = 0; y < size; y++) g.push(new Array(size).fill(1));
+// ===== GOAL SIGNAL =====
+function playGoal(delay=0){
+  const dx=gx-px, dy=gy-py;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const maxD=Math.sqrt((mazeSize-3)**2*2);
+  const ratio=Math.max(0,1-dist/maxD);
+  const goalPan=Math.max(-1,Math.min(1,dx/(mazeSize*0.38)));
+  const freq=360+ratio*1200;
+  const vol=0.035+ratio*ratio*0.62;
+  const vibHz=ratio>0.35 ? 2+ratio*12 : 0;
+  if(vibHz>0) TV(freq,vol,0.45,vibHz,goalPan,delay);
+  else T(freq,vol,0.45,'sine',goalPan,delay);
+  if(ratio>0.5) T(freq*1.52,vol*0.3,0.38,'sine',goalPan,delay+0.11);
+}
 
-  function carve(x, y) {
-    g[y][x] = 0;
-    const dirs = [[0,-2],[0,2],[-2,0],[2,0]].sort(() => Math.random() - 0.5);
-    for (const [dx, dy] of dirs) {
-      const nx = x + dx, ny = y + dy;
-      if (nx > 0 && nx < size-1 && ny > 0 && ny < size-1 && g[ny][nx] === 1) {
-        g[y + dy/2][x + dx/2] = 0;
-        carve(nx, ny);
-      }
-    }
+// ===== LANDMARK SOUNDS =====
+// Dead end, T-junction, 4-way crossing
+function playLandmark(){
+  const open=openCount();
+  if(open===1){
+    // Dead end: descending 3-note
+    [500,380,260].forEach((f,i)=>T(f,0.12,0.12,'sine',0,0.5+i*0.14));
+  } else if(open===4){
+    // 4-way crossing: ascending 4-note chime
+    [400,530,660,800].forEach((f,i)=>T(f,0.10,0.12,'sine',0,0.45+i*0.11));
+  } else if(open===3){
+    // T-junction: single bell
+    T(660,0.10,0.22,'sine',0,0.48);
+    T(990,0.06,0.18,'sine',0,0.60);
   }
-  carve(1, 1);
-  return g;
 }
 
-/* ---- DISTANCE HELPERS ---- */
-function wallDist(x, y, dx, dy) {
-  let d = 0, cx = x, cy = y;
-  while (d < mazeSize) {
-    cx += dx; cy += dy; d++;
-    if (!maze[cy] || maze[cy][cx] === 1) return d;
-  }
+function openCount(){
+  return [[-1,0],[1,0],[0,-1],[0,1]].filter(([dx,dy])=>
+    maze[py+dy]&&maze[py+dy][px+dx]===0
+  ).length;
+}
+
+// ===== STEP SOUND =====
+// With room acoustics: tight corridor = dry, open area = slight echo
+function playStep(isRevisit){
+  const openness=[[-1,0],[1,0],[0,-1],[0,1]].reduce((s,[dx,dy])=>
+    s+Math.min(wd(px,py,dx,dy),5),0); // 4-20
+
+  const freq=isRevisit?180:290;
+  const vol=isRevisit?0.04:0.055;
+  T(freq,vol,0.055,'sine',0,0);
+
+  // Room echo: openness 4=dry(0.015s), 20=reverby(0.09s)
+  const echoT=0.010+(openness/20)*0.080;
+  T(freq*0.65,vol*0.22,0.045,'sine',0,echoT);
+}
+
+// ===== BUMP =====
+function playBump(){
+  T(42,0.50,0.13,'square',0);
+  T(36,0.32,0.20,'sawtooth',0,0.055);
+}
+
+// ===== COORDINATE READOUT =====
+// High beeps = X position (1-5), Low beeps = Y position (1-5)
+function playCoords(){
+  AC();
+  const xNorm=Math.round((px/(mazeSize-1))*4)+1; // 1-5
+  const yNorm=Math.round((py/(mazeSize-1))*4)+1; // 1-5
+  let t=0;
+  // X: high beeps
+  for(let i=0;i<xNorm;i++){T(1000,0.13,0.07,'sine',0,t+i*0.14);}
+  t=xNorm*0.14+0.35;
+  // Y: low beeps
+  for(let i=0;i<yNorm;i++){T(320,0.13,0.09,'sine',0,t+i*0.16);}
+
+  const dirTxt=goalDirTxt();
+  const dist=Math.sqrt((gx-px)**2+(gy-py)**2);
+  const maxD=Math.sqrt((mazeSize-3)**2*2);
+  const near=1-dist/maxD;
+  const nearTxt=near>0.85?'すぐそこ':near>0.6?'近い':near>0.35?'中程度':'遠い';
+  say(`横${xNorm}、縦${yNorm}（左上が1、右下が5）。ゴールは${dirTxt}、${nearTxt}。`,true);
+}
+
+// ===== CLEAR FANFARE =====
+function playClear(){
+  [[523,0],[659,.12],[784,.24],[1047,.38],[784,.52],[1047,.66],[1319,.82]].forEach(([f,d])=>T(f,0.48,0.27,'sine',0,d));
+}
+
+// ===== DISTANCE HELPERS =====
+function wd(x,y,dx,dy){
+  let d=0,cx=x,cy=y;
+  while(d<mazeSize){cx+=dx;cy+=dy;d++;if(!maze[cy]||maze[cy][cx]===1)return d;}
   return d;
 }
-function eucDist(x1, y1, x2, y2) {
-  return Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+function euc(x1,y1,x2,y2){return Math.sqrt((x2-x1)**2+(y2-y1)**2);}
+
+// ===== MAZE GENERATION (recursive backtracker) =====
+function genMaze(size){
+  const g=[];
+  for(let y=0;y<size;y++) g.push(new Array(size).fill(1));
+  function carve(x,y){
+    g[y][x]=0;
+    const dirs=[[0,-2],[0,2],[-2,0],[2,0]].sort(()=>Math.random()-.5);
+    for(const [dx,dy] of dirs){
+      const nx=x+dx,ny=y+dy;
+      if(nx>0&&nx<size-1&&ny>0&&ny<size-1&&g[ny][nx]===1){
+        g[y+dy/2][x+dx/2]=0;carve(nx,ny);
+      }
+    }
+  }
+  carve(1,1);return g;
 }
 
-/* ---- DRAW ---- */
-function drawMaze() {
-  if (!ctx) return;
-  const c = document.getElementById('maze-canvas');
-  const cell = Math.floor(Math.min(420, window.innerWidth - 40) / mazeSize);
-  c.width  = cell * mazeSize;
-  c.height = cell * mazeSize;
+// ===== DRAW MAZE =====
+// Shows: walls, explored cells, player, goal, faint direction line
+function drawMaze(){
+  if(!ctx2d) return;
+  const c=canvasEl;
+  const cell=Math.floor(Math.min(398,window.innerWidth-52)/mazeSize);
+  c.width=cell*mazeSize; c.height=cell*mazeSize;
 
   // Background
-  ctx.fillStyle = '#0c0c12';
-  ctx.fillRect(0, 0, c.width, c.height);
+  ctx2d.fillStyle='#08080f';
+  ctx2d.fillRect(0,0,c.width,c.height);
 
-  for (let y = 0; y < mazeSize; y++) {
-    for (let x = 0; x < mazeSize; x++) {
-      if (maze[y][x] === 1) {
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(x*cell, y*cell, cell, cell);
+  for(let y=0;y<mazeSize;y++){
+    for(let x=0;x<mazeSize;x++){
+      if(maze[y][x]===1){
+        ctx2d.fillStyle='#161628';
+        ctx2d.fillRect(x*cell,y*cell,cell,cell);
+        ctx2d.strokeStyle='rgba(70,70,110,0.28)';
+        ctx2d.strokeRect(x*cell+.5,y*cell+.5,cell-1,cell-1);
+      } else if(visited.has(`${x},${y}`)){
+        // Visited open cell: subtle warm glow
+        ctx2d.fillStyle='rgba(92,172,248,0.06)';
+        ctx2d.fillRect(x*cell,y*cell,cell,cell);
       }
     }
   }
 
-  // Goal glow
-  const gcx = gx * cell + cell/2, gcy = gy * cell + cell/2;
-  const grd = ctx.createRadialGradient(gcx, gcy, 0, gcx, gcy, cell*0.7);
-  grd.addColorStop(0, 'rgba(90,240,160,0.9)');
-  grd.addColorStop(1, 'rgba(90,240,160,0)');
-  ctx.fillStyle = grd;
-  ctx.beginPath();
-  ctx.arc(gcx, gcy, cell*0.7, 0, Math.PI*2);
-  ctx.fill();
+  // Faint line to goal direction (helps sighted users)
+  const dist2=euc(px,py,gx,gy);
+  const maxD2=euc(1,1,mazeSize-2,mazeSize-2);
+  const alpha=Math.min(0.15,(1-dist2/maxD2)*0.22+0.03);
+  ctx2d.beginPath();
+  ctx2d.moveTo(px*cell+cell/2,py*cell+cell/2);
+  ctx2d.lineTo(gx*cell+cell/2,gy*cell+cell/2);
+  ctx2d.strokeStyle=`rgba(77,232,150,${alpha.toFixed(3)})`;
+  ctx2d.lineWidth=1.5;
+  ctx2d.setLineDash([3,5]);
+  ctx2d.stroke();
+  ctx2d.setLineDash([]);
 
-  // Player
-  ctx.fillStyle = 'rgba(100,160,255,0.95)';
-  ctx.beginPath();
-  ctx.arc(px*cell + cell/2, py*cell + cell/2, cell*0.38, 0, Math.PI*2);
-  ctx.fill();
+  // Goal glow + star
+  const gcx=gx*cell+cell/2,gcy=gy*cell+cell/2;
+  const grd=ctx2d.createRadialGradient(gcx,gcy,0,gcx,gcy,cell*1.4);
+  grd.addColorStop(0,'rgba(77,232,150,0.6)');
+  grd.addColorStop(.5,'rgba(77,232,150,0.18)');
+  grd.addColorStop(1,'rgba(77,232,150,0)');
+  ctx2d.fillStyle=grd;
+  ctx2d.beginPath();ctx2d.arc(gcx,gcy,cell*1.4,0,Math.PI*2);ctx2d.fill();
+  ctx2d.fillStyle='rgba(77,232,150,0.92)';
+  ctx2d.font=`${Math.max(9,cell-5)}px serif`;
+  ctx2d.textAlign='center';ctx2d.textBaseline='middle';
+  ctx2d.fillText('★',gcx,gcy);
+
+  // Player: bright blue circle with inner glow
+  const pcx=px*cell+cell/2,pcy=py*cell+cell/2;
+  const pgrd=ctx2d.createRadialGradient(pcx,pcy,0,pcx,pcy,cell*0.45);
+  pgrd.addColorStop(0,'rgba(160,210,255,1)');
+  pgrd.addColorStop(1,'rgba(50,120,240,0.85)');
+  ctx2d.fillStyle=pgrd;
+  ctx2d.beginPath();ctx2d.arc(pcx,pcy,cell*0.4,0,Math.PI*2);ctx2d.fill();
+
+  // Current cell highlight ring
+  ctx2d.strokeStyle='rgba(92,172,248,0.5)';
+  ctx2d.lineWidth=1.5;
+  ctx2d.strokeRect(px*cell+1,py*cell+1,cell-2,cell-2);
 }
 
-/* ---- MOVE ---- */
-function move(dx, dy) {
-  getAudio(); // ensure context started by user gesture
-  const nx = px + dx, ny = py + dy;
-  if (maze[ny] && maze[ny][nx] === 0) {
-    px = nx; py = ny;
-    steps++;
-    document.getElementById('hud-steps').textContent = steps;
-    playStepSound();
-    drawMaze();
+// ===== UPDATE SPATIAL PANEL =====
+function updatePanel(){
+  const dx=gx-px,dy=gy-py;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const maxD=Math.sqrt((mazeSize-3)**2*2);
+  const ratio=Math.max(0,1-dist/maxD);
 
-    if (px === gx && py === gy) {
-      setTimeout(onClear, 200);
-    } else {
-      setTimeout(playSurroundings, 80);
-      // Screen reader: describe surroundings
-      announcePosition();
-    }
+  // Compass arrow rotation (angle from north)
+  const angle=Math.atan2(dx,-dy)*180/Math.PI;
+  const arr=document.getElementById('goal-arrow');
+  if(arr) arr.setAttribute('transform',`rotate(${angle.toFixed(1)},39,39)`);
+
+  // Distance bar
+  const pct=Math.round(ratio*100);
+  const bar=document.getElementById('dbar');
+  const barA=document.getElementById('dbar-aria');
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.style.background=ratio>0.75?'#f0b040':ratio>0.4?'#4de896':'#5cacf8';
+  }
+  if(barA) barA.setAttribute('aria-valuenow',pct);
+
+  // Wall/open pills for 4 directions
+  const dU=wd(px,py,0,-1),dD=wd(px,py,0,1),dL=wd(px,py,-1,0),dR=wd(px,py,1,0);
+  function pill(id,d){
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.classList.toggle('warn',d<=1);
+    el.classList.toggle('open',d>2);
+  }
+  pill('pp-U',dU); pill('pp-D',dD); pill('pp-L',dL); pill('pp-R',dR);
+}
+
+// ===== GOAL DIRECTION TEXT =====
+function goalDirTxt(){
+  const dx=gx-px,dy=gy-py;
+  const ang=Math.atan2(dx,-dy)*180/Math.PI;
+  return ['真前','右前','真右','右後','真後','左後','真左','左前'][Math.round(((ang%360)+360)%360/45)%8];
+}
+
+// ===== MOVE =====
+function mv(dx,dy){
+  AC();
+  const nx=px+dx,ny=py+dy;
+  if(maze[ny]&&maze[ny][nx]===0){
+    const wasVisited=visited.has(`${nx},${ny}`);
+    px=nx;py=ny;steps++;
+    visited.add(`${px},${py}`);
+    document.getElementById('hud-stp').textContent=steps;
+    playStep(wasVisited);
+    drawMaze();
+    updatePanel();
+    if(px===gx&&py===gy){setTimeout(onClear,220);return;}
+    setTimeout(playMiniScan,55);
+    setTimeout(()=>playGoal(0),400);
+    // Landmark check
+    const oc=openCount();
+    if(oc===1||oc===3||oc===4) setTimeout(playLandmark,30);
+    announcePos();
   } else {
-    playBumpSound();
-    announceWall();
+    playBump();
+    say('壁があります。');
   }
 }
 
-/* ---- SCREEN READER ANNOUNCEMENTS ---- */
-function announce(msg, polite = false) {
-  const el = document.getElementById(polite ? 'aria-polite' : 'aria-live');
-  el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = msg; });
+// ===== SONAR BUTTON =====
+function doSonar(){
+  AC();
+  playSonar();
+  // After sound finishes (1.9s), announce text
+  setTimeout(()=>{
+    const DIRS=[{dx:0,dy:-1,lbl:'前'},{dx:1,dy:0,lbl:'右'},{dx:0,dy:1,lbl:'後'},{dx:-1,dy:0,lbl:'左'}];
+    const walls=DIRS.map(d=>{
+      const dist=wd(px,py,d.dx,d.dy);
+      const desc=dist<=1?'すぐ壁':dist<=2?`${dist}マス先に壁`:`通路${dist}マス以上`;
+      return `${d.lbl}：${desc}`;
+    }).join('。');
+    const gdir=goalDirTxt();
+    const dist=euc(px,py,gx,gy);
+    const r=1-dist/Math.sqrt((mazeSize-3)**2*2);
+    const near=r>0.85?'すぐそこ':r>0.6?'近い':r>0.35?'中程度':'遠い';
+    say(`${walls}。ゴールは${gdir}、${near}。`,true);
+  },1950);
 }
 
-function announcePosition() {
-  const dL = wallDist(px, py, -1, 0);
-  const dR = wallDist(px, py,  1, 0);
-  const dU = wallDist(px, py,  0,-1);
-  const dD = wallDist(px, py,  0, 1);
-  const dist = eucDist(px, py, gx, gy);
-  const maxDist = eucDist(1, 1, mazeSize-2, mazeSize-2);
-  const ratio = 1 - dist / maxDist;
-  const goalDesc = ratio > 0.85 ? 'とても近い' : ratio > 0.6 ? '近い' : ratio > 0.35 ? '中程度' : '遠い';
+function doCoords(){ AC(); playCoords(); }
 
-  const parts = [];
-  if (dU === 1) parts.push('前に壁');
-  if (dD === 1) parts.push('後ろに壁');
-  if (dL === 1) parts.push('左に壁');
-  if (dR === 1) parts.push('右に壁');
-  const wallMsg = parts.length ? parts.join('、') : '周囲に壁なし';
-  announce(`${wallMsg}。ゴールまで${goalDesc}。手数${steps}。`, true);
+// ===== SCREEN READER =====
+function say(msg,polite=false){
+  const el=document.getElementById(polite?'live-p':'live-a');
+  el.textContent='';
+  requestAnimationFrame(()=>{el.textContent=msg;});
 }
 
-function announceWall() {
-  announce('壁があります。別の方向へ移動してください。');
+function announcePos(){
+  const dU=wd(px,py,0,-1),dD=wd(px,py,0,1),dL=wd(px,py,-1,0),dR=wd(px,py,1,0);
+  const walls=[];
+  if(dU<=1)walls.push('前');if(dD<=1)walls.push('後');
+  if(dL<=1)walls.push('左');if(dR<=1)walls.push('右');
+  const wt=walls.length?walls.join('・')+'に壁':'四方に通路';
+  const gdir=goalDirTxt();
+  const dist=euc(px,py,gx,gy);
+  const r=1-dist/Math.sqrt((mazeSize-3)**2*2);
+  const near=r>0.85?'すぐそこ':r>0.6?'近い':r>0.35?'中程度':'遠い';
+  const oc=openCount();
+  const shape=oc===1?'行き止まり':oc===4?'十字路':oc===3?'T字路':'';
+  say(`${wt}。${shape?shape+'。':''}ゴールは${gdir}、${near}。手数${steps}。`,true);
 }
 
-/* ---- CLEAR ---- */
-function onClear() {
-  playClearFanfare();
-  const cfg = DIFFS[currentDiff];
-  const isLast = currentStage >= cfg.stages;
-  const title = isLast ? '全ステージクリア！🏆' : `ステージ ${currentStage} クリア！`;
-  const rank = getRank(steps);
-
-  document.getElementById('clear-title').textContent = title;
-  document.getElementById('clear-sub').textContent =
-    isLast ? `${cfg.label}の全ステージを制覇しました！` : '次のステージに進みましょう';
-  document.getElementById('clear-steps').textContent = steps + '歩';
-  document.getElementById('clear-rank').textContent = rank;
-
-  const btnNext = document.getElementById('btn-next');
-  btnNext.textContent = isLast ? 'タイトルへ戻る →' : '次のステージへ →';
-  btnNext.onclick = isLast ? showTitle : nextStage;
-
-  showScreen('clear');
-  // Focus heading for screen reader
-  setTimeout(() => {
-    document.getElementById('clear-title').setAttribute('tabindex', '-1');
-    document.getElementById('clear-title').focus();
-    announce(`ゴール！ステージ${currentStage}クリア！手数${steps}歩。評価：${rank}`);
-  }, 500);
+// ===== CLEAR =====
+function onClear(){
+  playClear();
+  const cfg=DIFFS[curDiff];
+  const isLast=curStage>=cfg.stages;
+  const rank=getRank(steps);
+  document.getElementById('clr-h').textContent=isLast?`全${cfg.stages}ステージ制覇！`:`ステージ ${curStage} クリア！`;
+  document.getElementById('clr-sub').textContent=isLast?`${cfg.lbl}の全ステージをクリアしました！`:'次のステージへ進みましょう。';
+  document.getElementById('clr-stp').textContent=steps+'歩';
+  document.getElementById('clr-rnk').textContent=rank;
+  document.getElementById('all-badge').hidden=!isLast;
+  const bn=document.getElementById('btn-next');
+  bn.textContent=isLast?'タイトルへ戻る':'次のステージへ →';
+  bn.onclick=isLast?showTitle:nextStage;
+  showScr('clear');
+  setTimeout(()=>{
+    const h=document.getElementById('clr-h');
+    h.setAttribute('tabindex','-1');h.focus();
+    say(`ゴール！ステージ${curStage}クリア。手数${steps}歩。評価${rank}。${isLast?'全ステージ制覇！':''}`);
+  },400);
 }
 
-function getRank(s) {
-  if (s <= mazeSize * 2)     return '⭐⭐⭐ 完璧';
-  if (s <= mazeSize * 3.5)   return '⭐⭐ 優秀';
-  if (s <= mazeSize * 6)     return '⭐ クリア';
+function getRank(s){
+  if(s<=mazeSize*2)   return '★★★ 完璧';
+  if(s<=mazeSize*3.5) return '★★ 優秀';
+  if(s<=mazeSize*6)   return '★ クリア';
   return 'クリア';
 }
 
-/* ---- GAME FLOW ---- */
-function startGame() {
-  getAudio();
-  const cfg = DIFFS[currentDiff];
-  mazeSize = cfg.size;
-  currentStage = 1;
+// ===== GAME FLOW =====
+function startGame(){
+  AC();
+  mazeSize=DIFFS[curDiff].size;
+  curStage=1;
   loadStage();
 }
 
-function loadStage() {
-  maze = generateMaze(mazeSize);
-  px = 1; py = 1;
-  gx = mazeSize - 2; gy = mazeSize - 2;
-  steps = 0;
-  darkMode = false;
+function loadStage(){
+  maze=genMaze(mazeSize);
+  px=1;py=1;gx=mazeSize-2;gy=mazeSize-2;
+  steps=0;isDark=false;
+  visited=new Set();
+  visited.add('1,1');
 
-  document.getElementById('hud-diff').textContent  = DIFFS[currentDiff].label;
-  document.getElementById('hud-stage').textContent = `${currentStage} / ${DIFFS[currentDiff].stages}`;
-  document.getElementById('hud-steps').textContent = '0';
+  document.getElementById('hud-diff').textContent=DIFFS[curDiff].lbl;
+  document.getElementById('hud-stg').textContent=`${curStage} / ${DIFFS[curDiff].stages}`;
+  document.getElementById('hud-stp').textContent='0';
 
-  const btnDark = document.getElementById('btn-dark');
-  btnDark.setAttribute('aria-pressed', 'false');
-  document.getElementById('maze-wrap').classList.remove('dark-mode');
+  const bd=document.getElementById('btn-dark');
+  bd.setAttribute('aria-pressed','false');bd.textContent='🌑 真っ暗';
+  document.getElementById('maze-wrap').style.opacity='1';
 
-  showScreen('game');
-
-  canvas = document.getElementById('maze-canvas');
-  ctx = canvas.getContext('2d');
+  showScr('game');
+  canvasEl=document.getElementById('maze-canvas');
+  ctx2d=canvasEl.getContext('2d');
   drawMaze();
+  updatePanel();
 
-  // Focus game area, announce for screen reader
-  setTimeout(() => {
-    document.getElementById('screen-game').focus();
-    const cfg = DIFFS[currentDiff];
-    announce(
-      `ステージ${currentStage}スタート。難易度${cfg.label}。迷路サイズ${mazeSize}×${mazeSize}。` +
-      `左上がスタート、右下がゴールです。矢印キーで移動してください。`,
+  setTimeout(()=>{
+    document.getElementById('scr-game').focus();
+    const dir=goalDirTxt();
+    say(
+      `ステージ${curStage}スタート。難易度${DIFFS[curDiff].lbl}。`+
+      `迷路${mazeSize}×${mazeSize}マス。`+
+      `あなたは左上にいます。ゴールは右下方向（${dir}）です。`+
+      `Rキーでソナー確認、Tabで現在地の座標確認ができます。`+
+      `矢印キーまたは画面のボタンで移動してください。`,
       true
     );
-    setTimeout(playSurroundings, 600);
-  }, 100);
+    setTimeout(playSonar,900);
+    setTimeout(()=>playGoal(0),2400);
+  },150);
 }
 
-function nextStage() {
-  currentStage++;
-  loadStage();
+function nextStage(){curStage++;loadStage();}
+function replayStage(){loadStage();}
+
+// ===== DARK MODE =====
+function togDark(){
+  isDark=!isDark;
+  const bd=document.getElementById('btn-dark');
+  bd.setAttribute('aria-pressed',isDark?'true':'false');
+  document.getElementById('maze-wrap').style.opacity=isDark?'0':'1';
+  bd.textContent=isDark?'🌕 画面表示':'🌑 真っ暗';
+  say(isDark?'画面を非表示にしました。音だけモードです。':'画面を表示しました。',true);
 }
 
-function replayStage() {
-  loadStage();
+// ===== SETTINGS =====
+function selDiff(d){
+  curDiff=d;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.diff===d?'true':'false'));
+  say(`難易度「${DIFFS[d].lbl}」を選択。`,true);
 }
 
-/* ---- HINT / REPLAY SOUND ---- */
-function playHint() {
-  getAudio();
-  playSurroundings();
-  announce('周囲の音を再生しました。', true);
+function setVol(v){
+  masterVol=v/100;
+  document.getElementById('vol-disp').textContent=v+'%';
+  document.getElementById('vol-sl').setAttribute('aria-valuenow',v);
 }
 
-/* ---- DARK MODE TOGGLE ---- */
-function toggleDark() {
-  darkMode = !darkMode;
-  const btn = document.getElementById('btn-dark');
-  const wrap = document.getElementById('maze-wrap');
-  btn.setAttribute('aria-pressed', darkMode ? 'true' : 'false');
-  wrap.style.opacity = darkMode ? '0' : '1';
-  btn.textContent = darkMode ? '🌕 画面を表示' : '🌑 真っ暗モード';
-  announce(darkMode ? '画面を非表示にしました。音だけで遊べます。' : '画面を表示しました。', true);
-}
-
-/* ---- DIFFICULTY SELECT ---- */
-function selectDiff(d) {
-  currentDiff = d;
-  document.querySelectorAll('.diff-btn').forEach(b => {
-    const sel = b.dataset.diff === d;
-    b.setAttribute('aria-pressed', sel ? 'true' : 'false');
-  });
-  announce(`難易度「${DIFFS[d].label}」を選択しました。`, true);
-}
-
-/* ---- VOLUME ---- */
-function setVol(v) {
-  masterVol = v / 100;
-  document.getElementById('vol-display').textContent = v + '%';
-  document.getElementById('vol-slider').setAttribute('aria-valuenow', v);
-}
-
-/* ---- SCREEN SWITCHER ---- */
-function showScreen(id) {
-  ['title','game','clear'].forEach(s => {
-    const el = document.getElementById('screen-' + s);
-    el.classList.toggle('active', s === id);
-    el.hidden = s !== id;
+// ===== SCREEN SWITCHER =====
+function showScr(id){
+  ['title','game','clear'].forEach(s=>{
+    const el=document.getElementById('scr-'+s);
+    const on=s===id;
+    el.classList.toggle('on',on);
+    el.hidden=!on;
   });
 }
 
-function showTitle() {
-  showScreen('title');
-  setTimeout(() => {
-    document.getElementById('title-h1').focus();
-    announce('タイトル画面に戻りました。難易度を選んでゲームスタートボタンを押してください。', true);
-  }, 100);
+function showTitle(){
+  showScr('title');
+  setTimeout(()=>{
+    const h=document.getElementById('t-h1');
+    h.setAttribute('tabindex','-1');h.focus();
+    say('タイトル画面に戻りました。難易度を選んでゲームスタートボタンを押してください。',true);
+  },80);
 }
 
-/* ---- KEYBOARD CONTROL ---- */
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('screen-game').classList.contains('active')) return;
-  const map = {
-    ArrowLeft:  [-1, 0], ArrowRight: [1, 0],
-    ArrowUp:    [0, -1], ArrowDown:  [0, 1],
-    a: [-1,0], d: [1,0], w: [0,-1], s: [0,1],
-    A: [-1,0], D: [1,0], W: [0,-1], S: [0,1],
-    h: [-1,0], l: [1,0], k: [0,-1], j: [0,1], // vim keys
-    '4': [-1,0], '6': [1,0], '8': [0,-1], '2': [0,1], // numpad
+// ===== KEYBOARD =====
+document.addEventListener('keydown',e=>{
+  const onGame=document.getElementById('scr-game').classList.contains('on');
+
+  // Title screen: Enter/Space on focused button already works natively
+  if(!onGame) return;
+
+  const map={
+    ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1],
+    a:[-1,0],d:[1,0],w:[0,-1],s:[0,1],
+    A:[-1,0],D:[1,0],W:[0,-1],S:[0,1],
+    h:[-1,0],l:[1,0],k:[0,-1],j:[0,1],
+    '4':[-1,0],'6':[1,0],'8':[0,-1],'2':[0,1],
   };
-  const m = map[e.key];
-  if (m) { e.preventDefault(); move(...m); }
-
-  // R = replay surroundings
-  if (e.key === 'r' || e.key === 'R') {
-    e.preventDefault();
-    playHint();
-  }
-  // Escape = back to title
-  if (e.key === 'Escape') {
-    showTitle();
-  }
-});
-
-/* Touch swipe for mobile */
-let touchStartX = 0, touchStartY = 0;
-document.addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-}, { passive: true });
-document.addEventListener('touchend', e => {
-  if (!document.getElementById('screen-game').classList.contains('active')) return;
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  const absDx = Math.abs(dx), absDy = Math.abs(dy);
-  if (Math.max(absDx, absDy) < 30) return;
-  if (absDx > absDy) {
-    move(dx > 0 ? 1 : -1, 0);
-  } else {
-    move(0, dy > 0 ? 1 : -1);
-  }
-}, { passive: true });
-
-/* ---- INIT ---- */
-// Initialize screen visibility
-document.querySelectorAll('.screen').forEach(s => {
-  s.hidden = !s.classList.contains('active');
-});
-
-// Watch for active class changes and sync hidden
-const observer = new MutationObserver(mutations => {
-  mutations.forEach(m => {
-    if (m.attributeName === 'class') {
-      m.target.hidden = !m.target.classList.contains('active');
+  const m=map[e.key];
+  if(m){e.preventDefault();mv(...m);return;}
+  if(e.key==='r'||e.key==='R'){e.preventDefault();doSonar();return;}
+  if(e.key===' '){e.preventDefault();AC();playGoal(0);say(`ゴールは${goalDirTxt()}方向。`,true);return;}
+  if(e.key==='Tab'){
+    // Only intercept Tab when in game (don't break natural focus)
+    const gscr=document.getElementById('scr-game');
+    if(document.activeElement===gscr||document.activeElement===document.body){
+      e.preventDefault();doCoords();
     }
-  });
+    return;
+  }
+  if(e.key==='Escape'){showTitle();}
 });
-document.querySelectorAll('.screen').forEach(s => observer.observe(s, { attributes: true }));
+
+// Touch swipe
+let tx=0,ty=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!document.getElementById('scr-game').classList.contains('on')) return;
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<26) return;
+  if(Math.abs(dx)>Math.abs(dy)) mv(dx>0?1:-1,0);
+  else mv(0,dy>0?1:-1);
+},{passive:true});
+
+// ===== INIT =====
+document.querySelectorAll('.screen').forEach(s=>{s.hidden=!s.classList.contains('on');});
+const mo=new MutationObserver(mts=>{
+  mts.forEach(m=>{if(m.attributeName==='class') m.target.hidden=!m.target.classList.contains('on');});
+});
+document.querySelectorAll('.screen').forEach(s=>mo.observe(s,{attributes:true}));
 </script>
 </body>
 </html>
+HTMLEOF
+echo "done: $(wc -l < /mnt/user-data/outputs/sound_maze.html) lines"
